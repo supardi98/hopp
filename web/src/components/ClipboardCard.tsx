@@ -45,9 +45,10 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
   const [timerMenuOpen, setTimerMenuOpen] = useState(false);
   const [tagModalOpen, setTagModalOpen] = useState(false);
   const [tagInputText, setTagInputText] = useState('');
+  const [tagToDeleteConfirm, setTagToDeleteConfirm] = useState<string | null>(null);
   const [timeLeftStr, setTimeLeftStr] = useState<string | null>(null);
 
-  const { togglePin, deleteItem, showToast, setItemTags, setItemSelfDestruct } = useHoppStore();
+  const { togglePin, deleteItem, showToast, setItemTags, setItemSelfDestruct, setSearchQuery } = useHoppStore();
 
   // Self-Destruct Countdown Timer Ticker
   useEffect(() => {
@@ -265,20 +266,57 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
             {/* Custom Tags List */}
             {item.tags && item.tags.length > 0 && (
               <div className="flex items-center space-x-1">
-                {item.tags.map((t) => (
-                  <span
-                    key={t}
-                    className="inline-flex items-center space-x-1 px-2 py-0.5 text-[10px] font-bold text-indigo-300 bg-indigo-500/20 border border-indigo-500/30 rounded-md"
-                  >
-                    <span>{t}</span>
-                    <button
-                      onClick={() => handleRemoveTag(t)}
-                      className="hover:text-red-300 opacity-60 hover:opacity-100"
+                {item.tags.map((t) =>
+                  tagToDeleteConfirm === t ? (
+                    <span
+                      key={t}
+                      className="inline-flex items-center space-x-1.5 px-2 py-0.5 text-[10px] font-bold text-rose-200 bg-rose-950/90 border border-rose-500/50 rounded-md animate-fadeIn"
                     >
-                      <X className="w-2.5 h-2.5" />
-                    </button>
-                  </span>
-                ))}
+                      <span>Hapus {t}?</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveTag(t);
+                          setTagToDeleteConfirm(null);
+                          showToast(`Tag '${t}' dihapus`);
+                        }}
+                        className="px-1.5 py-0.2 bg-rose-600 hover:bg-rose-500 text-white rounded text-[9px] font-bold transition-colors"
+                      >
+                        Ya
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTagToDeleteConfirm(null);
+                        }}
+                        className="px-1.5 py-0.2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[9px] font-bold transition-colors"
+                      >
+                        Batal
+                      </button>
+                    </span>
+                  ) : (
+                    <span
+                      key={t}
+                      onClick={() => {
+                        setSearchQuery(t);
+                        showToast(`Memfilter berdasarkan tag: ${t}`);
+                      }}
+                      className="inline-flex items-center space-x-1 px-2 py-0.5 text-[10px] font-bold text-indigo-300 bg-indigo-500/20 hover:bg-indigo-500/35 border border-indigo-500/30 rounded-md cursor-pointer transition-colors"
+                    >
+                      <span>{t}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTagToDeleteConfirm(t);
+                        }}
+                        className="hover:text-red-300 opacity-60 hover:opacity-100 p-0.5"
+                        title="Hapus tag ini"
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </span>
+                  )
+                )}
               </div>
             )}
           </div>
