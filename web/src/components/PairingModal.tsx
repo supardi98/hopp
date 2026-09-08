@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, QrCode, Check, Copy, Link2, KeyRound, ShieldCheck } from 'lucide-react';
+import QRCode from 'qrcode';
 import { useHoppStore } from '../store/useHoppStore';
 import { writeSystemClipboard } from '../lib/nativeClipboard';
 
@@ -8,8 +9,7 @@ export const PairingModal: React.FC = () => {
   const [copiedRoom, setCopiedRoom] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-
-  if (!isPairingModalOpen) return null;
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
 
   const getPairingUrl = () => {
     const origin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'http://localhost:4080';
@@ -17,6 +17,18 @@ export const PairingModal: React.FC = () => {
     const key = settings.secretKey || '';
     return `${origin}/?room=${encodeURIComponent(room)}&key=${encodeURIComponent(key)}`;
   };
+
+  const pairingUrl = getPairingUrl();
+
+  useEffect(() => {
+    if (isPairingModalOpen && pairingUrl) {
+      QRCode.toDataURL(pairingUrl, { width: 300, margin: 1 })
+        .then((url) => setQrDataUrl(url))
+        .catch((err) => console.warn('QR Code generation failed:', err));
+    }
+  }, [isPairingModalOpen, pairingUrl]);
+
+  if (!isPairingModalOpen) return null;
 
   const handleCopyRoomCode = () => {
     if (!settings.roomCode) return;
@@ -34,14 +46,11 @@ export const PairingModal: React.FC = () => {
   };
 
   const handleCopyPairingLink = () => {
-    const pairingUrl = getPairingUrl();
     writeSystemClipboard(pairingUrl);
     setCopiedLink(true);
     showToast('Link Pairing Instan disalin! Kirim ke HP/Laptop lain untuk koneksi otomatis.');
     setTimeout(() => setCopiedLink(false), 2000);
   };
-
-  const pairingUrl = getPairingUrl();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/95 overflow-y-auto">
@@ -71,11 +80,15 @@ export const PairingModal: React.FC = () => {
           {/* Top Section: Prominent Centered QR Code */}
           <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col items-center justify-center space-y-3">
             <div className="w-36 h-36 sm:w-44 sm:h-44 p-2 bg-white rounded-2xl flex items-center justify-center shadow-lg shrink-0">
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pairingUrl)}`}
-                alt="Scan Pairing QR Code"
-                className="w-full h-full object-contain rounded-lg"
-              />
+              {qrDataUrl ? (
+                <img
+                  src={qrDataUrl}
+                  alt="Scan Pairing QR Code"
+                  className="w-full h-full object-contain rounded-lg"
+                />
+              ) : (
+                <div className="text-[11px] text-slate-500 flex items-center justify-center">Membuat QR...</div>
+              )}
             </div>
             <p className="text-[11px] text-slate-400 text-center leading-relaxed max-w-xs">
               Pindai Kode QR di atas menggunakan kamera HP / Device lain untuk bergabung otomatis.

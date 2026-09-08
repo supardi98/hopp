@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, ArrowRight, KeyRound, Sparkles, X, Copy, Check, LogOut, Camera, Upload } from 'lucide-react';
+import { Plus, ArrowRight, KeyRound, Sparkles, X, Copy, Check, LogOut, Camera, Upload, AlertTriangle } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 import { generateRoomCode } from '../lib/crypto';
 import { writeSystemClipboard } from '../lib/nativeClipboard';
@@ -16,6 +16,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
   const [inputSecretKey, setInputSecretKey] = useState('');
   const [copied, setCopied] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [confirmCreateNew, setConfirmCreateNew] = useState(false);
 
   // Live Camera Scanner states
   const [isScanning, setIsScanning] = useState(false);
@@ -179,6 +180,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
   };
 
   const handleCreateNewRoom = () => {
+    if (settings.isRoomSet && !confirmCreateNew) {
+      setConfirmCreateNew(true);
+      return;
+    }
+    setConfirmCreateNew(false);
     const newCode = generateRoomCode();
     updateSettings({ roomCode: newCode, isRoomSet: true });
     initRealtimeSync();
@@ -280,28 +286,58 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
 
         {mode === 'choose' ? (
           <div className="space-y-3 pt-1">
-            {/* Option 1: Create New Room */}
-            <button
-              onClick={handleCreateNewRoom}
-              className="w-full p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-indigo-950/80 to-purple-950/60 hover:from-indigo-900/90 hover:to-purple-900/80 border border-indigo-500/30 hover:border-indigo-400 text-left transition-all group shadow-md"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 sm:p-2.5 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
-                    <Plus className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-bold text-slate-100 group-hover:text-indigo-300">
-                      Buat Workspace / Room Baru
-                    </h3>
-                    <p className="text-[11px] sm:text-xs text-slate-400 leading-snug">
-                      Buat 6-karakter Kode Sync rahasia baru untuk HP & Komputer Anda.
-                    </p>
-                  </div>
+            {/* Confirmation Dialog for Creating New Room when already in a room */}
+            {confirmCreateNew ? (
+              <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 space-y-3">
+                <div className="flex items-center space-x-2 text-amber-300 text-xs font-bold justify-center">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Konfirmasi Buat Workspace / Room Baru</span>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all shrink-0" />
+                <p className="text-[11px] text-slate-300 text-center leading-relaxed">
+                  Saat ini Anda sedang berada di Room <span className="font-mono text-indigo-300 font-bold">{settings.roomCode}</span>. Apakah Anda yakin ingin membuat dan berpindah ke Room Sync baru?
+                </p>
+                <div className="flex items-center space-x-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmCreateNew(false)}
+                    className="w-1/2 py-2.5 text-xs font-semibold text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-xl border border-slate-800 transition-all text-center"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateNewRoom}
+                    className="w-1/2 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl border border-indigo-500 transition-all flex items-center justify-center space-x-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Ya, Buat Room Baru</span>
+                  </button>
+                </div>
               </div>
-            </button>
+            ) : (
+              /* Option 1: Create New Room */
+              <button
+                onClick={handleCreateNewRoom}
+                className="w-full p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-indigo-950/80 to-purple-950/60 hover:from-indigo-900/90 hover:to-purple-900/80 border border-indigo-500/30 hover:border-indigo-400 text-left transition-all group shadow-md"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 sm:p-2.5 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
+                      <Plus className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-bold text-slate-100 group-hover:text-indigo-300">
+                        Buat Workspace / Room Baru
+                      </h3>
+                      <p className="text-[11px] sm:text-xs text-slate-400 leading-snug">
+                        Buat 6-karakter Kode Sync rahasia baru untuk HP & Komputer Anda.
+                      </p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all shrink-0" />
+                </div>
+              </button>
+            )}
 
             {/* Option 2: Join Existing Room */}
             <button

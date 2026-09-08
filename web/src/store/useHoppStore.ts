@@ -62,13 +62,25 @@ interface HoppState {
   simulateSimultaneousPaste: () => void;
 }
 
-const isLocalLanIp = (ip?: string): boolean => {
-  if (!ip) return true;
-  const clean = ip.trim().replace(/^::ffff:/i, '');
-  if (clean === '127.0.0.1' || clean === '::1' || clean === 'localhost') return true;
-  if (/^192\.168\./.test(clean)) return true;
-  if (/^10\./.test(clean)) return true;
-  if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(clean)) return true;
+const isLocalLanIp = (senderIp?: string, myIp?: string): boolean => {
+  if (!senderIp) return true;
+  const cleanSender = senderIp.trim().replace(/^::ffff:/i, '');
+  const cleanMy = myIp ? myIp.trim().replace(/^::ffff:/i, '') : '';
+
+  // 1. If sender IP matches current device IP, they are on the SAME router / NAT network!
+  if (cleanMy && (cleanSender === cleanMy || cleanSender === '127.0.0.1' || cleanMy === '127.0.0.1')) return true;
+
+  // 2. Loopback & Localhost
+  if (cleanSender === '127.0.0.1' || cleanSender === '::1' || cleanSender === 'localhost') return true;
+
+  // 3. Private RFC1918 subnets (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+  if (/^192\.168\./.test(cleanSender)) return true;
+  if (/^10\./.test(cleanSender)) return true;
+  if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(cleanSender)) return true;
+
+  // 4. CGNAT subnets (100.64.0.0/10)
+  if (/^100\.(6[4-9]|[7-9][0-9]|1[0-1][0-9]|12[0-7])\./.test(cleanSender)) return true;
+
   return false;
 };
 
@@ -489,7 +501,8 @@ export const useHoppStore = create<HoppState>()(
           // If LAN-Only mode is enabled, filter out items from non-LAN IP addresses
           if (settings.lanSyncOnly) {
             const senderDev = get().pairedDevices.find((d) => d.id === newItem.senderDeviceId);
-            if (senderDev && senderDev.ipAddress && !isLocalLanIp(senderDev.ipAddress)) {
+            const myIp = get().currentDevice?.ipAddress;
+            if (senderDev && senderDev.ipAddress && !isLocalLanIp(senderDev.ipAddress, myIp)) {
               console.warn('[LAN Only] Broadcast item ignored from non-LAN sender IP:', senderDev.ipAddress);
               return;
             }
