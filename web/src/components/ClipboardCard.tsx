@@ -23,12 +23,18 @@ import {
   Timer,
   Flame,
   Tag,
+  ScanText,
+  CheckSquare,
+  Square,
+  ShieldAlert,
 } from 'lucide-react';
 import type { ClipboardItem, PlatformType } from '../types';
 import { useHoppStore } from '../store/useHoppStore';
 import { writeSystemClipboard } from '../lib/nativeClipboard';
 import { getPayloadFromDB } from '../utils/storageDB';
 import { isJSONString, formatJSON, isCodeSnippet, detectLanguage } from '../utils/codeFormatter';
+import { analyzeSensitivity } from '../utils/sensitiveDetector';
+import { extractTextFromImage } from '../utils/ocrExtractor';
 
 interface ClipboardCardProps {
   item: ClipboardItem;
@@ -48,7 +54,26 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
   const [tagToDeleteConfirm, setTagToDeleteConfirm] = useState<string | null>(null);
   const [timeLeftStr, setTimeLeftStr] = useState<string | null>(null);
 
-  const { togglePin, deleteItem, showToast, setItemTags, setItemSelfDestruct, setSearchQuery } = useHoppStore();
+  // OCR & Sensitivity States
+  const [showSensitive, setShowSensitive] = useState(false);
+  const [ocrText, setOcrText] = useState<string | null>(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrCopied, setOcrCopied] = useState(false);
+
+  const {
+    togglePin,
+    deleteItem,
+    showToast,
+    setItemTags,
+    setItemSelfDestruct,
+    setSearchQuery,
+    selectedItemIds,
+    isSelectMode,
+    toggleSelectItem,
+  } = useHoppStore();
+
+  const isSelected = selectedItemIds.includes(item.id);
+  const sensitivity = analyzeSensitivity(item.content);
 
   // Self-Destruct Countdown Timer Ticker
   useEffect(() => {
@@ -98,6 +123,39 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy to clipboard', err);
+    }
+  };
+
+  const handleRunOCR = async () => {
+    if (!filePayload || filePayload === '[FILE_DATA]') {
+      showToast('Payload gambar sedang dimuat...');
+      return;
+    }
+    setOcrLoading(true);
+    try {
+      const extracted = await extractTextFromImage(filePayload);
+      if (extracted) {
+        setOcrText(extracted);
+        showToast('Teks berhasil diekstrak dari gambar via OCR!');
+      } else {
+        showToast('Tidak ada teks terdeteksi pada gambar ini.');
+      }
+    } catch (err) {
+      showToast('Gagal memproses OCR pada gambar.');
+    } finally {
+      setOcrLoading(false);
+    }
+  };
+
+  const handleCopyOCRText = async () => {
+    if (!ocrText) return;
+    try {
+      await writeSystemClipboard(ocrText);
+      setOcrCopied(true);
+      showToast('Teks OCR disalin ke clipboard!');
+      setTimeout(() => setOcrCopied(false), 2000);
+    } catch (err) {
+      showToast('Gagal menyalin teks OCR');
     }
   };
 
@@ -236,12 +294,33 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
         {/* Header Info Bar */}
         <div className="flex items-center justify-between gap-2 mb-2.5 flex-wrap">
           <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+            {(isSelectMode || isSelected) && (
+              <button
+                onClick={() => toggleSelectItem(item.id)}
+                className="p-0.5 text-slate-300 hover:text-indigo-400 transition-colors shrink-0 cursor-pointer"
+                title="Pilih item ini"
+              >
+                {isSelected ? (
+                  <CheckSquare className="w-4.5 h-4.5 text-indigo-400" />
+                ) : (
+                  <Square className="w-4.5 h-4.5 text-slate-500 hover:text-slate-300" />
+                )}
+              </button>
+            )}
+
             {getContentBadge()}
 
             <div className="flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-slate-950 border border-slate-800 text-[11px] text-slate-300">
               {getPlatformIcon(item.senderPlatform)}
               <span className="font-medium">{item.senderDeviceName}</span>
             </div>
+
+            {sensitivity.isSensitive && (
+              <span className="flex items-center space-x-1 px-2 py-0.5 text-[10px] font-mono font-bold text-amber-300 bg-amber-950/80 border border-amber-500/40 rounded-md">
+                <ShieldAlert className="w-3 h-3 text-amber-400" />
+                <span className="uppercase">{sensitivity.type} Sensitif</span>
+              </span>
+            )}
 
             {item.encryptedContent && item.encryptedContent !== item.content ? (
               <span className="text-[10px] font-mono font-medium text-purple-400 flex items-center space-x-1">
@@ -461,6 +540,18 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
               </button>
             )}
 
+            {item.contentType === 'image' && (
+              <button
+                onClick={handleRunOCR}
+                disabled={ocrLoading}
+                className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold text-cyan-300 bg-cyan-950/80 hover:bg-cyan-900 border-cyan-700/50 transition-all cursor-pointer"
+                title="Ekstrak teks tulisan dari gambar via OCR"
+              >
+                <ScanText className={`w-3.5 h-3.5 text-cyan-400 ${ocrLoading ? 'animate-spin' : ''}`} />
+                <span>{ocrLoading ? 'Memindai...' : 'Teks OCR'}</span>
+              </button>
+            )}
+
             {(item.contentType === 'image' || item.contentType === 'file') && (
               <button
                 onClick={handleDownload}
@@ -526,7 +617,23 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
 
         {/* Content View */}
         <div className="relative">
-          {item.contentType === 'image' ? (
+          {sensitivity.isSensitive && !showSensitive ? (
+            <div className="p-3 bg-amber-950/20 border border-amber-500/30 rounded-xl flex items-center justify-between gap-2">
+              <div className="flex items-center space-x-2 truncate">
+                <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="font-mono text-xs text-amber-200 tracking-wider font-semibold truncate">
+                  {sensitivity.maskedContent}
+                </span>
+              </div>
+              <button
+                onClick={() => setShowSensitive(true)}
+                className="px-2.5 py-1 text-xs font-bold text-amber-300 hover:text-white bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 rounded-lg flex items-center space-x-1 shrink-0 transition-all cursor-pointer"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>Intip</span>
+              </button>
+            </div>
+          ) : item.contentType === 'image' ? (
             <div className="space-y-2">
               <div className="relative rounded-xl overflow-hidden border border-purple-500/20 bg-slate-950 max-h-64 group/img flex items-center justify-center">
                 {filePayload && filePayload !== '[FILE_DATA]' ? (
@@ -549,8 +656,31 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
                   <Eye className="w-4 h-4" />
                 </button>
               </div>
+
               {item.fileName && (
                 <p className="text-[11px] text-slate-400 font-mono truncate">{item.fileName}</p>
+              )}
+
+              {/* OCR Extracted Text Box */}
+              {ocrText && (
+                <div className="p-3 bg-slate-950/90 border border-cyan-500/30 rounded-xl space-y-2 animate-fadeIn">
+                  <div className="flex items-center justify-between text-xs font-mono text-cyan-400 font-bold">
+                    <span className="flex items-center space-x-1.5">
+                      <ScanText className="w-3.5 h-3.5" />
+                      <span>Hasil Ekstraksi Teks OCR:</span>
+                    </span>
+                    <button
+                      onClick={handleCopyOCRText}
+                      className="px-2.5 py-1 text-[11px] font-bold text-cyan-300 hover:text-white bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 rounded-lg flex items-center space-x-1 transition-all cursor-pointer"
+                    >
+                      {ocrCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      <span>{ocrCopied ? 'Tersalin' : 'Salin Teks OCR'}</span>
+                    </button>
+                  </div>
+                  <p className="text-xs font-mono text-slate-200 whitespace-pre-wrap break-words max-h-36 overflow-y-auto p-2 bg-slate-900/80 rounded-lg border border-slate-800">
+                    {ocrText}
+                  </p>
+                </div>
               )}
             </div>
           ) : item.contentType === 'file' ? (

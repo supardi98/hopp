@@ -8,6 +8,8 @@ import { SettingsModal } from './components/SettingsModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { E2EEModal } from './components/E2EEModal';
 import { CommandPalette } from './components/CommandPalette';
+import { GlobalDropzone } from './components/GlobalDropzone';
+import { BatchActionBar } from './components/BatchActionBar';
 import { MonitorSmartphone, RefreshCw, KeyRound, ShieldCheck, Check } from 'lucide-react';
 import { useHoppStore } from './store/useHoppStore';
 import { readSystemClipboard, isTauriEnvironment } from './lib/nativeClipboard';
@@ -206,6 +208,10 @@ export function App() {
               </div>
             </div>
           )}
+
+          {/* Global Drag-and-Drop & Multi-Select Batch Bar */}
+          <GlobalDropzone />
+          <BatchActionBar />
 
           {/* Modals */}
           <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />

@@ -35,6 +35,8 @@ interface HoppState {
   isOtherTabActive: boolean;
   isDeviceListOpen: boolean;
   activeP2pPeers: string[];
+  selectedItemIds: string[];
+  isSelectMode: boolean;
 
   // Actions
   initRealtimeSync: () => void;
@@ -62,6 +64,12 @@ interface HoppState {
   simulateSimultaneousPaste: () => void;
   setItemTags: (id: string, tags: string[]) => void;
   setItemSelfDestruct: (id: string, durationMinutes: number | null) => void;
+  setSelectMode: (active: boolean) => void;
+  toggleSelectItem: (id: string) => void;
+  selectAllItems: () => void;
+  clearSelectedItems: () => void;
+  deleteSelectedItems: () => void;
+  exportSelectedItemsJSON: () => void;
 }
 
 const isLocalLanIp = (senderIp?: string, myIp?: string): boolean => {
@@ -209,6 +217,8 @@ export const useHoppStore = create<HoppState>()(
         activeToast: null,
         isWsConnected: false,
         activeP2pPeers: [],
+        selectedItemIds: [],
+        isSelectMode: false,
 
         initRealtimeSync: () => {
           const { name, platform } = detectDeviceFromUA();
@@ -801,6 +811,59 @@ export const useHoppStore = create<HoppState>()(
           ];
           const randomSample = sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
           get().addClipboardItem(randomSample.text, randomSample.sender);
+        },
+
+        setSelectMode: (active) => set((state) => ({ isSelectMode: active, selectedItemIds: active ? state.selectedItemIds : [] })),
+
+        toggleSelectItem: (id) =>
+          set((state) => {
+            const exists = state.selectedItemIds.includes(id);
+            return {
+              selectedItemIds: exists
+                ? state.selectedItemIds.filter((item) => item !== id)
+                : [...state.selectedItemIds, id],
+            };
+          }),
+
+        selectAllItems: () => set((state) => ({ selectedItemIds: state.items.map((i) => i.id) })),
+
+        clearSelectedItems: () => set({ selectedItemIds: [] }),
+
+        deleteSelectedItems: () => {
+          const { selectedItemIds, settings, items } = get();
+          if (selectedItemIds.length === 0) return;
+
+          selectedItemIds.forEach((id) => {
+            deletePayloadFromDB(id);
+            wsClient.deleteClipboardItem(id, settings.roomCode);
+          });
+
+          const selectedSet = new Set(selectedItemIds);
+          set({
+            items: items.filter((i) => !selectedSet.has(i.id)),
+            selectedItemIds: [],
+            isSelectMode: false,
+          });
+          get().showToast(`${selectedItemIds.length} item berhasil dihapus`);
+        },
+
+        exportSelectedItemsJSON: () => {
+          const { selectedItemIds, items } = get();
+          const targetItems = selectedItemIds.length > 0
+            ? items.filter((i) => selectedItemIds.includes(i.id))
+            : items;
+
+          if (targetItems.length === 0) return;
+
+          const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(targetItems, null, 2));
+          const downloadAnchor = document.createElement('a');
+          downloadAnchor.setAttribute('href', dataStr);
+          downloadAnchor.setAttribute('download', `hopp_backup_${Date.now()}.json`);
+          document.body.appendChild(downloadAnchor);
+          downloadAnchor.click();
+          downloadAnchor.remove();
+
+          get().showToast(`${targetItems.length} item berhasil diekspor ke JSON!`);
         },
       };
     },
