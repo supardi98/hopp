@@ -1,11 +1,12 @@
-import React from 'react';
-import { X, ShieldCheck, RefreshCw, Key, Database, Sliders, Globe, RotateCcw } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, ShieldCheck, RefreshCw, Key, Database, Sliders, Globe, RotateCcw, Copy, Check } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 import { generateSecretKey } from '../lib/crypto';
 import { getEffectiveRelayUrl } from '../lib/wsClient';
 
 export const SettingsModal: React.FC = () => {
   const { isSettingsModalOpen, setSettingsModalOpen, settings, updateSettings, showToast } = useHoppStore();
+  const [copiedKey, setCopiedKey] = useState(false);
 
   if (!isSettingsModalOpen) return null;
 
@@ -13,6 +14,14 @@ export const SettingsModal: React.FC = () => {
     const newKey = generateSecretKey();
     updateSettings({ secretKey: newKey });
     showToast('Secret Key baru telah dibuat!');
+  };
+
+  const handleCopySecretKey = () => {
+    if (!settings.secretKey) return;
+    navigator.clipboard.writeText(settings.secretKey);
+    setCopiedKey(true);
+    showToast('Secret Key disalin ke clipboard!');
+    setTimeout(() => setCopiedKey(false), 2000);
   };
 
   return (
@@ -60,22 +69,38 @@ export const SettingsModal: React.FC = () => {
             </p>
 
             <div className="pt-2">
-              <label className="text-[11px] font-semibold text-slate-400 flex items-center justify-between mb-1">
-                <span>Secret Pairing Key</span>
+              <label className="text-[11px] font-semibold text-slate-400 flex items-center justify-between mb-1.5">
+                <span>Secret Pairing Key (E2EE)</span>
                 <button
                   type="button"
                   onClick={handleRegenerateKey}
-                  className="text-indigo-400 hover:underline flex items-center space-x-1"
+                  className="text-indigo-400 hover:text-indigo-300 flex items-center space-x-1 text-[11px] transition-colors"
                 >
-                  <RefreshCw className="w-3 h-3" />
-                  <span>Acak Key</span>
+                  <RefreshCw className="w-3 h-3 text-indigo-400" />
+                  <span>Acak Key Baru</span>
                 </button>
               </label>
 
-              <div className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl font-mono text-xs text-indigo-300 flex items-center justify-between">
-                <Key className="w-3.5 h-3.5 text-slate-500 mr-2 shrink-0" />
-                <span className="truncate flex-1">{settings.secretKey}</span>
+              <div className="relative flex items-center">
+                <Key className="absolute left-3 w-3.5 h-3.5 text-slate-500 shrink-0 pointer-events-none" />
+                <input
+                  type="text"
+                  value={settings.secretKey || ''}
+                  onChange={(e) => updateSettings({ secretKey: e.target.value.toUpperCase() })}
+                  placeholder="Ketik atau tempel Secret Key"
+                  className="w-full pl-9 pr-10 py-2.5 bg-slate-950 border border-slate-800 focus:border-indigo-500/80 rounded-xl font-mono text-xs text-indigo-300 placeholder-slate-600 focus:outline-none uppercase tracking-wider transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={handleCopySecretKey}
+                  className="absolute right-2.5 p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                >
+                  {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                </button>
               </div>
+              <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
+                Anda bisa mengetik/mengubah Secret Key secara manual atau menyalinnya ke peranti lain. Semua peranti dalam room yang sama harus memakai Secret Key yang sama.
+              </p>
             </div>
           </div>
 

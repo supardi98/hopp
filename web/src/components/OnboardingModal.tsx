@@ -13,6 +13,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
   const { settings, updateSettings, showToast, initRealtimeSync, leaveRoom } = useHoppStore();
   const [mode, setMode] = useState<'choose' | 'join'>('choose');
   const [inputCode, setInputCode] = useState('');
+  const [inputSecretKey, setInputSecretKey] = useState('');
   const [copied, setCopied] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
 
@@ -41,7 +42,15 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
     if (!formatted) return;
 
     const finalCode = formatted.startsWith('HOPP-') ? formatted : `HOPP-${formatted}`;
-    updateSettings({ roomCode: finalCode, isRoomSet: true });
+    const newSettings: Partial<import('../types').E2EESettings> = {
+      roomCode: finalCode,
+      isRoomSet: true,
+    };
+    if (inputSecretKey.trim()) {
+      newSettings.secretKey = inputSecretKey.trim().toUpperCase();
+    }
+
+    updateSettings(newSettings);
     initRealtimeSync();
     showToast(`Berhasil bergabung ke Room '${finalCode}'!`);
     onClose();
@@ -214,17 +223,34 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
           <form onSubmit={handleJoinExistingRoom} className="space-y-4 pt-1">
             <div className="space-y-2">
               <label className="text-xs font-semibold text-slate-300">
-                Masukkan Kode Sync (Contoh: HOPP-89F1 atau 89F1)
+                Kode Sync Room (Wajib)
               </label>
               <input
                 type="text"
                 value={inputCode}
                 onChange={(e) => setInputCode(e.target.value)}
-                placeholder="HOPP-XXXX"
+                placeholder="Contoh: HOPP-89F1 atau 89F1"
                 autoFocus
                 required
-                className="w-full px-4 py-3 bg-slate-950 border border-indigo-500/40 rounded-xl text-center font-mono text-base sm:text-lg tracking-widest text-indigo-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2.5 bg-slate-950 border border-indigo-500/40 rounded-xl text-center font-mono text-base sm:text-lg tracking-widest text-indigo-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                <span>Pairing Secret Key (E2EE)</span>
+                <span className="text-[10px] text-slate-500 font-normal">Opsional</span>
+              </label>
+              <input
+                type="text"
+                value={inputSecretKey}
+                onChange={(e) => setInputSecretKey(e.target.value)}
+                placeholder="Kosongkan jika room tidak memakai enkripsi"
+                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl font-mono text-xs text-purple-300 placeholder-slate-600 focus:outline-none focus:border-purple-500"
+              />
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Disalin dari peranti asal (menu <i>Hubungkan Peranti</i>) jika room menggunakan enkripsi AES-256.
+              </p>
             </div>
 
             <div className="flex items-center space-x-3">

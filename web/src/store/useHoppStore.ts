@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { ClipboardItem, ContentType, Device, E2EESettings, PlatformType } from '../types';
-import { generateSecretKey, encryptContent } from '../lib/crypto';
+import { generateSecretKey, encryptContent, decryptContent } from '../lib/crypto';
 import { syncService } from '../lib/broadcast';
 import { wsClient, getEffectiveRelayUrl } from '../lib/wsClient';
 import { writeSystemClipboard } from '../lib/nativeClipboard';
@@ -431,42 +431,53 @@ export const useHoppStore = create<HoppState>()(
           // Ignore items from different room code if specified
           if (newItem.roomCode && newItem.roomCode !== settings.roomCode) return;
 
+          let processedItem = { ...newItem };
+          if (newItem.encryptedContent && settings.enabled) {
+            const decrypted = await decryptContent(newItem.encryptedContent, settings.secretKey, settings.roomCode);
+            processedItem.content = decrypted;
+          }
+
           // Deduplicate by content: bump timestamp and move to top if same content exists
           const existing = items.find(
             (i) =>
-              i.contentType === newItem.contentType &&
-              i.content.trim() === newItem.content.trim()
+              i.contentType === processedItem.contentType &&
+              i.content.trim() === processedItem.content.trim()
           );
           if (existing) {
-            const bumped = { ...existing, timestamp: newItem.timestamp };
+            const bumped = { ...existing, timestamp: processedItem.timestamp };
             const rest = items.filter((i) => i.id !== existing.id);
             set({ items: limitItemsWithPinnedProtection([bumped, ...rest], settings.maxItems) });
             return;
           }
 
           // Check if already exists by ID
-          if (items.some((i) => i.id === newItem.id)) return;
+          if (items.some((i) => i.id === processedItem.id)) return;
 
           // If item is image or file, persist to IndexedDB
-          if ((newItem.contentType === 'image' || newItem.contentType === 'file') && newItem.content) {
-            savePayloadToDB(newItem.id, newItem.content);
+          if ((processedItem.contentType === 'image' || processedItem.contentType === 'file') && processedItem.content) {
+            savePayloadToDB(processedItem.id, processedItem.content);
           }
 
-          set({ items: limitItemsWithPinnedProtection([newItem, ...items], settings.maxItems) });
+          set({ items: limitItemsWithPinnedProtection([processedItem, ...items], settings.maxItems) });
 
           // If auto-sync is enabled, automatically write incoming text to local OS system clipboard!
-          if (settings.autoSync && newItem.contentType !== 'image' && newItem.contentType !== 'file') {
+          if (
+            settings.autoSync &&
+            processedItem.contentType !== 'image' &&
+            processedItem.contentType !== 'file' &&
+            !processedItem.content.includes('[Encrypted content')
+          ) {
             try {
-              await writeSystemClipboard(newItem.content);
+              await writeSystemClipboard(processedItem.content);
             } catch (err) {
               console.warn('Auto-write to system clipboard failed:', err);
             }
           }
 
-          get().showToast(`Clipboard tersinkron dari ${newItem.senderDeviceName}!`);
+          get().showToast(`Clipboard tersinkron dari ${processedItem.senderDeviceName}!`);
         },
 
-        receiveRoomHistory: (incomingItems, roomCode) => {
+        receiveRoomHistory: async (incomingItems, roomCode) => {
           const { items, settings } = get();
           if (roomCode && roomCode !== settings.roomCode) return;
 
@@ -474,14 +485,24 @@ export const useHoppStore = create<HoppState>()(
           const newItemsToAppend = incomingItems.filter((i) => !existingIds.has(i.id));
 
           if (newItemsToAppend.length > 0) {
-            newItemsToAppend.forEach((item) => {
+            const processedItems = await Promise.all(
+              newItemsToAppend.map(async (item) => {
+                if (item.encryptedContent && settings.enabled) {
+                  const decrypted = await decryptContent(item.encryptedContent, settings.secretKey, settings.roomCode);
+                  return { ...item, content: decrypted };
+                }
+                return item;
+              })
+            );
+
+            processedItems.forEach((item) => {
               if ((item.contentType === 'image' || item.contentType === 'file') && item.content) {
                 savePayloadToDB(item.id, item.content);
               }
             });
-            const updated = limitItemsWithPinnedProtection([...newItemsToAppend, ...items], settings.maxItems);
+            const updated = limitItemsWithPinnedProtection([...processedItems, ...items], settings.maxItems);
             set({ items: updated });
-            get().showToast(`Tersinkron ${newItemsToAppend.length} riwayat room!`);
+            get().showToast(`Tersinkron ${processedItems.length} riwayat room!`);
           }
         },
 
@@ -518,14 +539,40 @@ export const useHoppStore = create<HoppState>()(
         updateSettings: (newSettings) => {
           const currentRoom = get().settings.roomCode;
           const currentRelay = get().settings.customRelayUrl;
+          const currentKey = get().settings.secretKey;
+          const currentEnabled = get().settings.enabled;
+
           const isRoomChanged = Boolean(newSettings.roomCode && newSettings.roomCode !== currentRoom);
           const isRelayChanged = Boolean(newSettings.customRelayUrl !== undefined && newSettings.customRelayUrl !== currentRelay);
+          const isKeyChanged = Boolean(newSettings.secretKey && newSettings.secretKey !== currentKey);
+          const isEnabledChanged = Boolean(newSettings.enabled !== undefined && newSettings.enabled !== currentEnabled);
+
+          const updatedSettings = { ...get().settings, ...newSettings };
 
           set((state) => ({
-            settings: { ...state.settings, ...newSettings },
+            settings: updatedSettings,
             // If room changed, reset items so previous room history doesn't leak!
             items: isRoomChanged ? [] : state.items,
           }));
+
+          // Re-decrypt existing items if secretKey or E2EE status changed
+          if ((isKeyChanged || isEnabledChanged) && !isRoomChanged) {
+            const activeKey = updatedSettings.secretKey;
+            const isE2EEActive = updatedSettings.enabled;
+            const roomCode = updatedSettings.roomCode;
+
+            Promise.all(
+              get().items.map(async (item) => {
+                if (item.encryptedContent && isE2EEActive) {
+                  const decrypted = await decryptContent(item.encryptedContent, activeKey, roomCode);
+                  return { ...item, content: decrypted };
+                }
+                return item;
+              })
+            ).then((reDecrypted) => {
+              set({ items: reDecrypted });
+            });
+          }
 
           // Only reconnect if this tab is the current WS leader
           if ((isRoomChanged || isRelayChanged) && get().settings.roomCode && _isLeaderTab) {
