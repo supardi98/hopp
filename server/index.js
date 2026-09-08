@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 4077;
 const MAX_PAYLOAD_MB = Number(process.env.MAX_PAYLOAD_MB || 15);
 const wss = new WebSocketServer({ 
   port: Number(PORT),

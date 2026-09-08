@@ -5,9 +5,9 @@ services:
       dockerfile: Dockerfile
     container_name: hopp-server
     ports:
-      - "8080:8080"
+      - "4077:4077"
     environment:
-      - PORT=8080
+      - PORT=4077
       - MAX_PAYLOAD_MB=15
     volumes:
       - ./server/data:/app/data

@@ -39,10 +39,10 @@ export default defineConfig({
   ],
   server: {
     host: true,
-    port: 5173,
+    port: 4078,
     proxy: {
       '/ws': {
-        target: 'ws://127.0.0.1:8080',
+        target: 'ws://127.0.0.1:4077',
         ws: true,
         changeOrigin: true,
         xfwd: true, // Pass X-Forwarded-For header containing client IP

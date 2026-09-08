@@ -34,12 +34,12 @@ export const getEffectiveRelayUrl = (customUrl?: string): string => {
     return `${protocol}//${currentHost}${portPart}/ws`;
   }
 
-  return `${protocol}//${currentHost}:8080`;
+  return `${protocol}//${currentHost}:4077`;
 };
 
 class RealtimeWSClient {
   private ws: WebSocket | null = null;
-  private serverUrl: string = 'ws://localhost:8080';
+  private serverUrl: string = 'ws://localhost:4077';
   private handlers: MessageHandler[] = [];
   private isConnected: boolean = false;
   private reconnectTimer: any = null;

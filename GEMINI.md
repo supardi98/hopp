@@ -24,7 +24,7 @@ Dokumen ini berisi panduan teknis, arsitektur monorepo, dan standar pengkodean u
 
 3. **`server/`**
    - **Engine**: Node.js + `ws` library (WebSocket Relay).
-   - **Port**: 8080.
+   - **Port**: 4077 (WebSocket Relay Server) / 4078 (Web Dev Server).
    - **Max Payload**: 15 MB.
    - **Docker**: `Dockerfile` & `docker-compose.yml` terintegrasi.
 

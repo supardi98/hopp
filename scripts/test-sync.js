@@ -2,7 +2,7 @@ import { WebSocket } from 'ws';
 
 console.log('🧪 Testing 2nd Device Connection & Real-time Clipboard Broadcast...');
 
-const ws = new WebSocket('ws://localhost:8080');
+const ws = new WebSocket('ws://localhost:4077');
 
 ws.on('open', () => {
   console.log('[Test Client] Connected to Hopp Server!');

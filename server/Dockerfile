@@ -8,6 +8,6 @@ RUN npm install --production
 
 COPY index.js ./
 
-EXPOSE 8080
+EXPOSE 4077
 
 CMD ["npm", "start"]
