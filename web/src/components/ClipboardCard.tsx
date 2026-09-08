@@ -28,6 +28,9 @@ import {
   CheckSquare,
   Square,
   ShieldAlert,
+  Mail,
+  QrCode,
+  Crop,
 } from 'lucide-react';
 import type { ClipboardItem, PlatformType } from '../types';
 import { useHoppStore } from '../store/useHoppStore';
@@ -36,7 +39,10 @@ import { getPayloadFromDB } from '../utils/storageDB';
 import { isJSONString, formatJSON, isCodeSnippet, detectLanguage } from '../utils/codeFormatter';
 import { analyzeSensitivity } from '../utils/sensitiveDetector';
 import { extractTextFromImage } from '../utils/ocrExtractor';
+import { analyzeColor, detectEmail, getTextStats } from '../utils/quickActionDetector';
 import { PinLockModal } from './PinLockModal';
+import { QRCodeModal } from './QRCodeModal';
+import { ImageAnnotatorModal } from './ImageAnnotatorModal';
 
 interface ClipboardCardProps {
   item: ClipboardItem;
@@ -63,6 +69,11 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrCopied, setOcrCopied] = useState(false);
 
+  // Smart Quick Action & Annotator States
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [annotatorOpen, setAnnotatorOpen] = useState(false);
+  const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
+
   const {
     togglePin,
     deleteItem,
@@ -78,6 +89,22 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
 
   const isSelected = selectedItemIds.includes(item.id);
   const sensitivity = analyzeSensitivity(item.content);
+
+  // Smart Detections
+  const colorInfo = analyzeColor(item.content);
+  const detectedEmail = detectEmail(item.content);
+  const textStats = getTextStats(item.content);
+
+  const handleCopyColorFormat = async (formatStr: string, label: string) => {
+    try {
+      await writeSystemClipboard(formatStr);
+      setCopiedFormat(label);
+      showToast(`Format ${label} ('${formatStr}') disalin ke clipboard!`);
+      setTimeout(() => setCopiedFormat(null), 2000);
+    } catch (err) {
+      showToast('Gagal menyalin format warna');
+    }
+  };
 
   // Self-Destruct Countdown Timer Ticker
   useEffect(() => {
@@ -346,6 +373,13 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
               </span>
             )}
 
+            {/* Word & Character Count Stats Badge */}
+            {textStats.isLongText && item.contentType === 'text' && (
+              <span className="px-2 py-0.5 text-[10px] font-mono text-slate-400 bg-slate-950 border border-slate-800 rounded-md">
+                📝 {textStats.wordCount} kata • {textStats.charCount} karakter
+              </span>
+            )}
+
             {/* Self-Destruct Countdown Badge */}
             {timeLeftStr && (
               <span className="flex items-center space-x-1 px-2 py-0.5 text-[10px] font-mono font-bold text-rose-300 bg-rose-950/80 border border-rose-500/40 rounded-md animate-pulse">
@@ -548,15 +582,56 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
               </button>
             )}
 
-            {item.contentType === 'image' && (
+            {/* Smart Quick Action Buttons */}
+            {item.contentType === 'url' && (
+              <>
+                <button
+                  onClick={() => setQrModalOpen(true)}
+                  className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold text-indigo-300 bg-indigo-950/80 hover:bg-indigo-900 border-indigo-700/50 transition-all cursor-pointer"
+                >
+                  <QrCode className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Kode QR</span>
+                </button>
+
+                <button
+                  onClick={() => window.open(item.content, '_blank', 'noopener,noreferrer')}
+                  className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold text-cyan-300 bg-cyan-950/80 hover:bg-cyan-900 border-cyan-700/50 transition-all cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Buka Tab</span>
+                </button>
+              </>
+            )}
+
+            {detectedEmail && (
               <button
-                onClick={handleRunOCR}
-                disabled={ocrLoading}
-                className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold text-cyan-300 bg-cyan-950/80 hover:bg-cyan-900 border-cyan-700/50 transition-all cursor-pointer"
+                onClick={() => window.open(`mailto:${detectedEmail}`, '_self')}
+                className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900 border-emerald-700/50 transition-all cursor-pointer"
               >
-                <ScanText className={`w-3.5 h-3.5 text-cyan-400 ${ocrLoading ? 'animate-spin' : ''}`} />
-                <span>{ocrLoading ? 'Memindai...' : 'Teks OCR'}</span>
+                <Mail className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Kirim Email</span>
               </button>
+            )}
+
+            {item.contentType === 'image' && (
+              <>
+                <button
+                  onClick={() => setAnnotatorOpen(true)}
+                  className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold text-purple-300 bg-purple-950/80 hover:bg-purple-900 border-purple-700/50 transition-all cursor-pointer"
+                >
+                  <Crop className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Edit & Sensor</span>
+                </button>
+
+                <button
+                  onClick={handleRunOCR}
+                  disabled={ocrLoading}
+                  className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold text-cyan-300 bg-cyan-950/80 hover:bg-cyan-900 border-cyan-700/50 transition-all cursor-pointer"
+                >
+                  <ScanText className={`w-3.5 h-3.5 text-cyan-400 ${ocrLoading ? 'animate-spin' : ''}`} />
+                  <span>{ocrLoading ? 'Memindai...' : 'Teks OCR'}</span>
+                </button>
+              </>
             )}
 
             {(item.contentType === 'image' || item.contentType === 'file') && (
@@ -624,6 +699,42 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
 
         {/* Content View */}
         <div className="relative space-y-2">
+          {/* Smart Color Preview Card */}
+          {colorInfo && (
+            <div className="p-3 bg-slate-950/90 border border-indigo-500/30 rounded-xl flex items-center justify-between gap-3 animate-fadeIn">
+              <div className="flex items-center space-x-3 truncate">
+                <div
+                  className="w-7 h-7 rounded-lg border border-white/30 shadow-md shrink-0 transition-transform hover:scale-110"
+                  style={{ backgroundColor: colorInfo.hex }}
+                />
+                <div className="truncate">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-mono text-xs font-black text-slate-100 uppercase tracking-wider">
+                      {colorInfo.hex}
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">Color Preview</span>
+                  </div>
+                  <p className="text-[11px] font-mono text-slate-400 truncate">
+                    {colorInfo.hsl} • {colorInfo.rgba}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-1.5 shrink-0">
+                <button
+                  onClick={() => handleCopyColorFormat(colorInfo.hsl, 'HSL')}
+                  className="px-2 py-1 text-[11px] font-mono font-bold text-indigo-300 hover:text-white bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/30 rounded-lg transition-all cursor-pointer"
+                >
+                  {copiedFormat === 'HSL' ? 'Tersalin!' : 'Salin HSL'}
+                </button>
+                <button
+                  onClick={() => handleCopyColorFormat(colorInfo.rgba, 'RGBA')}
+                  className="px-2 py-1 text-[11px] font-mono font-bold text-purple-300 hover:text-white bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 rounded-lg transition-all cursor-pointer"
+                >
+                  {copiedFormat === 'RGBA' ? 'Tersalin!' : 'Salin RGBA'}
+                </button>
+              </div>
+            </div>
+          )}
           {sensitivity.isSensitive && showSensitive && (
             <div className="flex items-center justify-between p-2.5 bg-amber-950/40 border border-amber-500/30 rounded-xl text-xs font-mono animate-fadeIn">
               <span className="flex items-center space-x-1.5 text-amber-300 font-semibold text-[11px]">
@@ -843,6 +954,23 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
             }
           }}
           onCancel={() => setShowPinPrompt(false)}
+        />
+      )}
+
+      {/* QR Code Modal */}
+      {qrModalOpen && (
+        <QRCodeModal
+          text={item.content}
+          onClose={() => setQrModalOpen(false)}
+        />
+      )}
+
+      {/* Image Annotator & Crop Modal */}
+      {annotatorOpen && filePayload && filePayload !== '[FILE_DATA]' && (
+        <ImageAnnotatorModal
+          item={item}
+          initialImageData={filePayload}
+          onClose={() => setAnnotatorOpen(false)}
         />
       )}
     </>
