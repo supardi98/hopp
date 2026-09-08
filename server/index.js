@@ -24,7 +24,7 @@ wss.on('connection', (ws, req) => {
   const session = { ws, roomCode: '' };
   clients.push(session);
 
-  console.log(`[+] New device connected from ${ip}`);
+  console.log(`[+] Device connected from ${ip}`);
 
   ws.on('message', (messageData) => {
     try {
@@ -37,8 +37,6 @@ wss.on('connection', (ws, req) => {
         session.platform = data.device.platform;
         session.roomCode = data.roomCode || data.device.roomCode || '';
 
-        console.log(`[Room: ${session.roomCode || 'UNREGISTERED'}] Registered Device: '${session.deviceName}' (${session.platform})`);
-
         // Broadcast updated online devices list ONLY to clients in this room
         broadcastDeviceList(session.roomCode);
 
@@ -46,7 +44,6 @@ wss.on('connection', (ws, req) => {
         if (session.roomCode && roomHistories.has(session.roomCode)) {
           const historyItems = roomHistories.get(session.roomCode);
           if (historyItems && historyItems.length > 0) {
-            console.log(`[Room: ${session.roomCode}] Catching up ${historyItems.length} items for late-joiner '${session.deviceName}'`);
             ws.send(
               JSON.stringify({
                 type: 'ROOM_HISTORY_SYNC',
@@ -63,7 +60,6 @@ wss.on('connection', (ws, req) => {
       if (data.type === 'SYNC_CLIPBOARD_ITEM') {
         const targetRoom = data.roomCode || session.roomCode;
         if (!targetRoom) return;
-        console.log(`[Room: ${targetRoom}] Clipboard Synced from '${data.item.senderDeviceName}'`);
 
         // Store item in Room History Buffer for late joiners
         if (!roomHistories.has(targetRoom)) {
@@ -100,7 +96,7 @@ wss.on('connection', (ws, req) => {
   });
 
   ws.on('close', () => {
-    console.log(`[-] Device disconnected: ${session.deviceName || ip} (Room: ${session.roomCode})`);
+    console.log(`[-] Device disconnected (${ip})`);
     const index = clients.indexOf(session);
     if (index !== -1) clients.splice(index, 1);
     broadcastDeviceList(session.roomCode);
