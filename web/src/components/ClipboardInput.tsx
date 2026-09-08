@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Send, ClipboardCheck, Lock, Sparkles, Paperclip } from 'lucide-react';
+import { Send, ClipboardCheck, Lock, Unlock, Sparkles, Paperclip } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 import { readSystemClipboard } from '../lib/nativeClipboard';
+import { isSubtleCryptoAvailable } from '../lib/crypto';
 
 export const ClipboardInput: React.FC = () => {
   const [inputText, setInputText] = useState('');
@@ -63,6 +64,9 @@ export const ClipboardInput: React.FC = () => {
     }
   };
 
+  const isWebCryptoActive = isSubtleCryptoAvailable();
+  const isE2EEActive = settings.enabled && isWebCryptoActive;
+
   return (
     <div
       onDragOver={handleDragOver}
@@ -93,10 +97,22 @@ export const ClipboardInput: React.FC = () => {
             </span>
           </div>
 
-          <div className="flex items-center space-x-1 text-[10px] sm:text-[11px] text-purple-400 font-medium bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20 shrink-0">
-            <Lock className="w-3 h-3" />
-            <span>{settings.enabled ? 'E2EE Encrypted' : 'Plain Text'}</span>
-          </div>
+          {!isWebCryptoActive ? (
+            <div className="flex items-center space-x-1 text-[10px] sm:text-[11px] text-amber-400 font-medium bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 shrink-0">
+              <Unlock className="w-3 h-3 text-amber-400" />
+              <span>HTTP / Tanpa E2EE</span>
+            </div>
+          ) : isE2EEActive ? (
+            <div className="flex items-center space-x-1 text-[10px] sm:text-[11px] text-purple-400 font-medium bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20 shrink-0">
+              <Lock className="w-3 h-3 text-purple-400" />
+              <span>E2EE Encrypted</span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-1 text-[10px] sm:text-[11px] text-slate-400 font-medium bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700/60 shrink-0">
+              <Unlock className="w-3 h-3 text-slate-400" />
+              <span>Plain Text</span>
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">

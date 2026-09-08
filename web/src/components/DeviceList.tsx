@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Terminal, Monitor, Smartphone, Globe, Plus, CheckCircle2, Info, X, ShieldCheck, Activity } from 'lucide-react';
+import { Terminal, Monitor, Smartphone, Globe, Plus, CheckCircle2, Info, X, ShieldCheck, Activity, Zap } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 import { WSLogModal } from './WSLogModal';
+import { webrtcManager } from '../lib/webrtcClient';
 import type { Device, PlatformType } from '../types';
 
 export const DeviceList: React.FC = () => {
-  const { pairedDevices, setPairingModalOpen, settings, isWsConnected, setDeviceListOpen } = useHoppStore();
+  const { pairedDevices, setPairingModalOpen, settings, isWsConnected, setDeviceListOpen, activeP2pPeers = [] } = useHoppStore();
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [isLogModalOpen, setLogModalOpen] = useState(false);
 
@@ -89,61 +90,76 @@ export const DeviceList: React.FC = () => {
         </div>
 
         <div className="space-y-2.5">
-          {pairedDevices.map((device, index) => (
-            <div
-              key={`${device.id}-${index}`}
-              onClick={() => setSelectedDevice(device)}
-              className={`group relative p-3 rounded-xl border transition-all cursor-pointer ${
-                device.isCurrentDevice
-                  ? 'bg-indigo-950/40 border-indigo-500/40 shadow-inner hover:border-indigo-400'
-                  : 'bg-slate-900/50 border-slate-800/60 hover:border-slate-700 hover:bg-slate-900/80'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 truncate">
-                  <div className="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center shrink-0">
-                    {getPlatformIcon(device.platform)}
-                  </div>
+          {pairedDevices.map((device, index) => {
+            const isP2pConnected = !device.isCurrentDevice && (activeP2pPeers.includes(device.id) || webrtcManager.getActivePeerIds().includes(device.id));
 
-                  <div className="space-y-1 truncate">
-                    <div className="flex items-center space-x-2 truncate">
-                      <span className="text-xs font-semibold text-slate-200 group-hover:text-white truncate">
-                        {device.name}
-                      </span>
-                      {device.isCurrentDevice && (
-                        <span className="shrink-0 flex items-center space-x-1 text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>Peranti Ini</span>
+            return (
+              <div
+                key={`${device.id}-${index}`}
+                onClick={() => setSelectedDevice(device)}
+                className={`group relative p-3 rounded-xl border transition-all cursor-pointer ${
+                  device.isCurrentDevice
+                    ? 'bg-indigo-950/40 border-indigo-500/40 shadow-inner hover:border-indigo-400'
+                    : 'bg-slate-900/50 border-slate-800/60 hover:border-slate-700 hover:bg-slate-900/80'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3 truncate">
+                    <div className="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center shrink-0">
+                      {getPlatformIcon(device.platform)}
+                    </div>
+
+                    <div className="space-y-1 truncate">
+                      <div className="flex items-center space-x-2 truncate">
+                        <span className="text-xs font-semibold text-slate-200 group-hover:text-white truncate">
+                          {device.name}
                         </span>
-                      )}
-                    </div>
+                        {device.isCurrentDevice && (
+                          <span className="shrink-0 flex items-center space-x-1 text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Peranti Ini</span>
+                          </span>
+                        )}
+                        {!device.isCurrentDevice && isP2pConnected && (
+                          <span className="shrink-0 flex items-center space-x-1 text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
+                            <Zap className="w-3 h-3 text-emerald-400" />
+                            <span>P2P Direct</span>
+                          </span>
+                        )}
+                        {!device.isCurrentDevice && !isP2pConnected && (
+                          <span className="shrink-0 flex items-center space-x-1 text-[10px] text-cyan-400 font-semibold bg-cyan-500/10 px-1.5 py-0.5 rounded-md border border-cyan-500/20">
+                            <Globe className="w-3 h-3 text-cyan-400" />
+                            <span>Relay WS</span>
+                          </span>
+                        )}
+                      </div>
 
-                    <div className="flex items-center space-x-2">
-                      <span className="text-[11px] font-mono font-medium text-slate-400">
-                        IP: {formatIp(device.ipAddress)}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-[11px] font-mono font-medium text-slate-400">
+                          IP: {formatIp(device.ipAddress)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Status & Actions */}
-                <div className="flex items-center space-x-2 shrink-0 ml-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  {/* Status & Actions */}
+                  <div className="flex items-center space-x-2 shrink-0 ml-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedDevice(device);
-                    }}
-                    className="p-1 text-slate-400 hover:text-indigo-300 rounded hover:bg-indigo-500/10"
-                  >
-                    <Info className="w-4 h-4" />
-                  </button>
-
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedDevice(device);
+                      }}
+                      className="p-1 text-slate-400 hover:text-indigo-300 rounded hover:bg-indigo-500/10"
+                    >
+                      <Info className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -179,6 +195,26 @@ export const DeviceList: React.FC = () => {
                 <span className="font-mono font-bold text-indigo-300">
                   {formatIp(selectedDevice.ipAddress)}
                 </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
+                <span className="text-slate-400 font-medium">Mode Jalur Data:</span>
+                {selectedDevice.isCurrentDevice ? (
+                  <span className="font-semibold text-emerald-400 flex items-center space-x-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Lokal Peranti Ini</span>
+                  </span>
+                ) : activeP2pPeers.includes(selectedDevice.id) || webrtcManager.getActivePeerIds().includes(selectedDevice.id) ? (
+                  <span className="font-semibold text-emerald-400 flex items-center space-x-1.5">
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>WebRTC Direct (P2P Wi-Fi)</span>
+                  </span>
+                ) : (
+                  <span className="font-semibold text-cyan-400 flex items-center space-x-1.5">
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>Server Relay (WebSocket)</span>
+                  </span>
+                )}
               </div>
 
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">

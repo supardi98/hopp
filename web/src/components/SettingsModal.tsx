@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ShieldCheck, RefreshCw, Key, Database, Sliders, Globe, RotateCcw, Copy, Check, AlertTriangle } from 'lucide-react';
+import { X, ShieldCheck, RefreshCw, Key, Database, Sliders, Globe, RotateCcw, Copy, Check, AlertTriangle, Zap } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 import { generateSecretKey, isSubtleCryptoAvailable } from '../lib/crypto';
 import { getEffectiveRelayUrl } from '../lib/wsClient';
@@ -187,6 +187,22 @@ export const SettingsModal: React.FC = () => {
                 checked={settings.autoSync}
                 onChange={(e) => updateSettings({ autoSync: e.target.checked })}
                 className="w-4 h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
+              />
+            </div>
+
+            <div className="flex items-center justify-between border-t border-slate-800/60 pt-3 gap-2">
+              <div>
+                <span className="text-xs font-semibold text-slate-200 flex items-center space-x-1.5">
+                  <Zap className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>Koneksi Direct WebRTC P2P (Wi-Fi Lokal)</span>
+                </span>
+                <p className="text-[11px] text-slate-400">Tukar file & clipboard secara langsung Peer-to-Peer tanpa melalui server relay</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.webrtcP2pEnabled ?? true}
+                onChange={(e) => updateSettings({ webrtcP2pEnabled: e.target.checked })}
+                className="w-4 h-4 accent-emerald-500 rounded cursor-pointer shrink-0"
               />
             </div>
 

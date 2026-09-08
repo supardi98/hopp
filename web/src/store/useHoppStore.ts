@@ -6,6 +6,7 @@ import { syncService } from '../lib/broadcast';
 import { wsClient, getEffectiveRelayUrl } from '../lib/wsClient';
 import { writeSystemClipboard } from '../lib/nativeClipboard';
 import { savePayloadToDB, deletePayloadFromDB, clearAllPayloadsDB } from '../utils/storageDB';
+import { webrtcManager } from '../lib/webrtcClient';
 
 // Unique Tab Instance ID per browser window/tab
 const TAB_INSTANCE_ID = `tab-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
@@ -32,6 +33,7 @@ interface HoppState {
   isWsConnected: boolean;
   isOtherTabActive: boolean;
   isDeviceListOpen: boolean;
+  activeP2pPeers: string[];
 
   // Actions
   initRealtimeSync: () => void;
@@ -169,6 +171,7 @@ export const useHoppStore = create<HoppState>()(
           lanSyncOnly: true,
           retentionHours: 24,
           lastConnectedTimestamp: Date.now(),
+          webrtcP2pEnabled: true,
         },
         activeTab: 'all',
         searchQuery: '',
@@ -180,6 +183,7 @@ export const useHoppStore = create<HoppState>()(
         isE2EEModalOpen: false,
         activeToast: null,
         isWsConnected: false,
+        activeP2pPeers: [],
 
         initRealtimeSync: () => {
           const { name, platform } = detectDeviceFromUA();
@@ -199,12 +203,31 @@ export const useHoppStore = create<HoppState>()(
           // Purge expired unpinned items based on last connection session
           get().purgeExpiredItems();
 
+          // Initialize WebRTC P2P Direct Client
+          const currentSettings = get().settings;
+          webrtcManager.init(
+            freshCurrentDevice.id,
+            currentSettings.roomCode,
+            (signalData) => wsClient.send(signalData)
+          );
+          webrtcManager.setEnabled(currentSettings.webrtcP2pEnabled ?? true);
+
+          webrtcManager.onItemReceived((item) => {
+            get().receiveBroadcastItem(item);
+          });
+
+          webrtcManager.onP2PStatusChange((_count, activePeerIds) => {
+            set({ activeP2pPeers: activePeerIds });
+          });
+
           // 1. Register message listener BEFORE connecting to prevent dropping instant server handshake messages
           wsClient.onMessage((data) => {
             if (data.type === 'RECEIVE_CLIPBOARD_ITEM') {
               get().receiveBroadcastItem(data.item);
             } else if (data.type === 'ROOM_HISTORY_SYNC') {
               get().receiveRoomHistory(data.items, data.roomCode);
+            } else if (data.type === 'WEBRTC_SIGNAL') {
+              webrtcManager.handleSignal(data);
             } else if (data.type === 'DEVICE_LIST_UPDATE') {
               const currentId = get().currentDevice?.id;
               const myServerDevice = (data.devices || []).find((d: Device) => d.id === currentId);
@@ -231,6 +254,15 @@ export const useHoppStore = create<HoppState>()(
                 });
               } else {
                 set({ pairedDevices: mergedDevices });
+              }
+
+              // Connect P2P WebRTC DataChannel to active devices if P2P is enabled
+              if (get().settings.webrtcP2pEnabled ?? true) {
+                mergedDevices.forEach((d) => {
+                  if (d.id && d.id !== currentId) {
+                    webrtcManager.initiateConnection(d.id);
+                  }
+                });
               }
             } else if (data.type === 'DELETE_CLIPBOARD_ITEM') {
               const target = get().items.find((i) => i.id === data.itemId);
@@ -361,10 +393,13 @@ export const useHoppStore = create<HoppState>()(
 
           set({ items: updatedItems });
 
-          // 1. Broadcast to open browser tabs
+          // 1. Send via direct WebRTC P2P DataChannel if active
+          webrtcManager.sendItemP2P(newItem);
+
+          // 2. Broadcast to open browser tabs
           syncService.broadcastItem(newItem);
 
-          // 2. Broadcast to real WebSocket network server with room isolation
+          // 3. Broadcast to real WebSocket network server with room isolation
           wsClient.broadcastClipboardItem(newItem, settings.roomCode);
 
           get().showToast(`Tersinkron di Room ${settings.roomCode}`);
@@ -424,6 +459,7 @@ export const useHoppStore = create<HoppState>()(
           const updatedItems = limitItemsWithPinnedProtection([newItem, ...items], settings.maxItems);
           set({ items: updatedItems });
 
+          webrtcManager.sendItemP2P(newItem);
           syncService.broadcastItem(newItem);
           wsClient.broadcastClipboardItem(newItem, settings.roomCode);
 
@@ -580,6 +616,27 @@ export const useHoppStore = create<HoppState>()(
             ).then((reDecrypted) => {
               set({ items: reDecrypted });
             });
+          }
+
+          if (newSettings.webrtcP2pEnabled !== undefined) {
+            webrtcManager.setEnabled(newSettings.webrtcP2pEnabled);
+            if (newSettings.webrtcP2pEnabled) {
+              const currentId = get().currentDevice?.id;
+              get().pairedDevices.forEach((d) => {
+                if (d.id && d.id !== currentId) {
+                  webrtcManager.initiateConnection(d.id);
+                }
+              });
+            }
+          }
+
+          if (isRoomChanged) {
+            webrtcManager.closeAll();
+            webrtcManager.init(
+              get().currentDevice.id,
+              updatedSettings.roomCode,
+              (signalData) => wsClient.send(signalData)
+            );
           }
 
           // Only reconnect if this tab is the current WS leader

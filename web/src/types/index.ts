@@ -47,4 +47,5 @@ export interface E2EESettings {
   retentionHours?: number;
   lastConnectedTimestamp?: number;
   customRelayUrl?: string;
+  webrtcP2pEnabled?: boolean;
 }
