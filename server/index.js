@@ -19,9 +19,19 @@ const clients = [];
 const roomHistories = new Map();
 const MAX_ROOM_HISTORY = 20;
 
+function sanitizeIp(ipRaw) {
+  if (!ipRaw) return '127.0.0.1';
+  let str = String(ipRaw).trim().replace(/^::ffff:/i, '');
+  if (str === '::1' || str === '1') {
+    return '127.0.0.1';
+  }
+  return str || '127.0.0.1';
+}
+
 wss.on('connection', (ws, req) => {
-  const ipRaw = req.socket.remoteAddress || '127.0.0.1';
-  const ip = ipRaw.replace(/^.*:/, '') || '127.0.0.1';
+  const forwarded = req.headers['x-forwarded-for'] || req.headers['x-real-ip'];
+  const ipRaw = forwarded ? String(forwarded).split(',')[0].trim() : (req.socket.remoteAddress || '127.0.0.1');
+  const ip = sanitizeIp(ipRaw);
   const session = { ws, roomCode: '', ipAddress: ip };
   clients.push(session);
 
@@ -151,7 +161,27 @@ wss.on('connection', (ws, req) => {
 });
 
 function broadcastDeviceList(roomCode) {
-  if (!roomCode) return;
+  if (!roomCode) {
+    clients.forEach((client) => {
+      if (!client.roomCode && client.ws.readyState === WebSocket.OPEN && client.deviceId) {
+        client.ws.send(
+          JSON.stringify({
+            type: 'DEVICE_LIST_UPDATE',
+            devices: [
+              {
+                id: client.deviceId,
+                name: client.deviceName,
+                platform: client.platform,
+                ipAddress: client.ipAddress || '127.0.0.1',
+                status: 'online',
+              },
+            ],
+          })
+        );
+      }
+    });
+    return;
+  }
 
   const roomDevices = clients
     .filter((c) => c.roomCode === roomCode && c.deviceId)

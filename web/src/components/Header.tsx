@@ -32,49 +32,77 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-4 lg:px-8 py-3.5 transition-all">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        {/* Brand & Status */}
-        <div className="flex items-center space-x-3.5">
-          <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 p-0.5 border border-indigo-400/30">
-            <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-              <span className="font-extrabold text-xl tracking-wider text-indigo-400">
-                h
+    <header className="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-3 sm:px-6 py-2.5 sm:py-3.5 transition-all">
+      <div className="max-w-7xl mx-auto flex flex-col space-y-2.5 md:space-y-0 md:flex-row md:items-center md:justify-between">
+        
+        {/* Top Header Bar (Brand & Action Buttons for Mobile) */}
+        <div className="flex items-center justify-between w-full md:w-auto">
+          {/* Brand & Title */}
+          <div className="flex items-center space-x-2.5 sm:space-x-3">
+            <div className="relative flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 p-0.5 border border-indigo-400/30 shrink-0">
+              <div className="w-full h-full bg-slate-950 rounded-[9px] sm:rounded-[10px] flex items-center justify-center">
+                <span className="font-extrabold text-lg sm:text-xl tracking-wider text-indigo-400">
+                  h
+                </span>
+              </div>
+              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3">
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-emerald-500"></span>
               </span>
             </div>
-            <span className="absolute -top-1 -right-1 flex h-3 w-3">
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-            </span>
+
+            <div>
+              <div className="flex items-center space-x-1.5 sm:space-x-2">
+                <h1 className="text-lg sm:text-xl font-bold text-slate-100 tracking-tight">
+                  Hopp
+                </h1>
+                <span className="px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold tracking-wider uppercase rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                  v2.4 Live
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-400 font-medium hidden sm:block">
+                Multi-Device Real-Time Sync
+              </p>
+            </div>
           </div>
 
-          <div>
-            <div className="flex items-center space-x-2">
-              <h1 className="text-xl font-bold text-slate-100 tracking-tight">
-                Hopp
-              </h1>
-              <span className="px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                v2.4 Live Sync
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 font-medium">
-              Multi-Device Real-Time Clipboard & Data Bridge
-            </p>
+          {/* Action Controls for Mobile (rendered right beside Brand on mobile header bar) */}
+          <div className="flex items-center space-x-1.5 sm:space-x-2 md:hidden">
+            <button
+              onClick={() => setPairingModalOpen(true)}
+              className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 active:from-indigo-500 active:to-purple-500 rounded-lg border border-indigo-400/30"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="text-[11px]">Hubungkan</span>
+            </button>
+
+            <button
+              onClick={() => setGuideModalOpen(true)}
+              className="p-1.5 text-slate-400 hover:text-slate-200 bg-slate-800/60 rounded-lg border border-slate-700/50"
+            >
+              <HelpCircle className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => setSettingsModalOpen(true)}
+              className="p-1.5 text-slate-400 hover:text-slate-200 bg-slate-800/60 rounded-lg border border-slate-700/50"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
-        {/* Live Badges */}
-        <div className="hidden lg:flex items-center space-x-3">
+        {/* Live Badges (Room Code, LAN, E2EE, Peranti Count) - VISIBLE ON BOTH DESKTOP & MOBILE */}
+        <div className="flex items-center space-x-2 overflow-x-auto pb-0.5 pt-1 md:pt-0 no-scrollbar text-xs">
+          {/* Room Code Badge */}
           <div
             onClick={() => setOnboardingOpen(true)}
-            className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-bold cursor-pointer transition-all group"
+            className="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-mono font-bold cursor-pointer transition-all group shrink-0 text-xs"
           >
-            <div className="flex items-center space-x-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Room: {settings.roomCode || 'Belum Set'}</span>
-            </div>
+            <KeyRound className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span>Room: {settings.roomCode || 'Belum Set'}</span>
             <button
               onClick={handleCopyRoomCode}
-              className="p-1 hover:bg-indigo-500/30 text-indigo-300 hover:text-white rounded-lg transition-colors ml-1"
+              className="p-0.5 hover:bg-indigo-500/30 text-indigo-300 hover:text-white rounded transition-colors ml-0.5"
             >
               {copiedRoom ? (
                 <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -84,17 +112,20 @@ export const Header: React.FC = () => {
             </button>
           </div>
 
-          <div className="flex items-center space-x-1.5 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-            <Wifi className="w-3.5 h-3.5" />
-            <span>LAN P2P Active</span>
+          {/* LAN P2P Status */}
+          <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium shrink-0 text-xs">
+            <Wifi className="w-3.5 h-3.5 shrink-0" />
+            <span>LAN P2P</span>
           </div>
 
-          <div className="flex items-center space-x-1.5 px-3 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-medium">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>{settings.enabled ? 'AES-256 E2EE On' : 'E2EE Disabled'}</span>
+          {/* E2EE Status */}
+          <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 font-medium shrink-0 text-xs">
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+            <span>{settings.enabled ? 'AES-256' : 'E2EE Off'}</span>
           </div>
 
-          <div className="flex items-center space-x-1.5 px-3 py-1 rounded-lg bg-slate-800/80 border border-slate-700/60 text-slate-300 text-xs font-medium">
+          {/* Devices Count */}
+          <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/60 text-slate-300 font-medium shrink-0 text-xs">
             <div className="flex -space-x-1">
               <Laptop className="w-3.5 h-3.5 text-indigo-400" />
               <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
@@ -103,11 +134,11 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center space-x-2 self-end md:self-auto">
+        {/* Action Controls for Desktop */}
+        <div className="hidden md:flex items-center space-x-2">
           <button
             onClick={() => setPairingModalOpen(true)}
-            className="flex items-center space-x-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-lg shadow-md shadow-indigo-600/20 border border-indigo-400/30 transition-all hover:scale-[1.02]"
+            className="flex items-center space-x-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-lg border border-indigo-400/30 transition-all hover:scale-[1.02]"
           >
             <Plus className="w-4 h-4" />
             <span>Hubungkan Peranti</span>
@@ -127,6 +158,7 @@ export const Header: React.FC = () => {
             <Settings className="w-4 h-4" />
           </button>
         </div>
+
       </div>
 
       {/* Floating Toast Notification */}

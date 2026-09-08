@@ -2,16 +2,39 @@ import type { ClipboardItem, Device } from '../types';
 
 type MessageHandler = (data: any) => void;
 
+export interface WSLogEntry {
+  id: string;
+  timestamp: string;
+  type: 'info' | 'success' | 'warn' | 'error' | 'send' | 'recv';
+  message: string;
+  details?: string;
+}
+
 export const getEffectiveRelayUrl = (customUrl?: string): string => {
   if (customUrl && customUrl.trim()) {
     return customUrl.trim();
   }
   const envUrl = (import.meta as any).env?.VITE_HOPP_RELAY_URL;
+  const currentHost = typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : 'localhost';
+  const currentPort = typeof window !== 'undefined' && window.location.port ? window.location.port : '';
+  const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+
   if (envUrl && envUrl.trim()) {
-    return envUrl.trim();
+    const trimmed = envUrl.trim();
+    if (trimmed.includes('localhost') && currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+      const portPart = currentPort ? `:${currentPort}` : '';
+      return `${protocol}//${currentHost}${portPart}/ws`;
+    }
+    return trimmed;
   }
-  const host = typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : 'localhost';
-  return `ws://${host}:8080`;
+
+  // If accessing from remote mobile/browser on network, use same port with /ws proxy to bypass firewall port blocks
+  if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    const portPart = currentPort ? `:${currentPort}` : '';
+    return `${protocol}//${currentHost}${portPart}/ws`;
+  }
+
+  return `${protocol}//${currentHost}:8080`;
 };
 
 class RealtimeWSClient {
@@ -21,6 +44,38 @@ class RealtimeWSClient {
   private isConnected: boolean = false;
   private reconnectTimer: any = null;
   private statusListeners: ((connected: boolean) => void)[] = [];
+  private logs: WSLogEntry[] = [];
+  private logListeners: ((logs: WSLogEntry[]) => void)[] = [];
+
+  public addLog(type: WSLogEntry['type'], message: string, details?: string) {
+    const entry: WSLogEntry = {
+      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: new Date().toLocaleTimeString(),
+      type,
+      message,
+      details,
+    };
+    this.logs.unshift(entry);
+    if (this.logs.length > 60) this.logs.pop();
+    this.logListeners.forEach((l) => l([...this.logs]));
+  }
+
+  public onLogsChange(listener: (logs: WSLogEntry[]) => void) {
+    this.logListeners.push(listener);
+    listener([...this.logs]);
+    return () => {
+      this.logListeners = this.logListeners.filter((l) => l !== listener);
+    };
+  }
+
+  public getLogs(): WSLogEntry[] {
+    return [...this.logs];
+  }
+
+  public clearLogs() {
+    this.logs = [];
+    this.logListeners.forEach((l) => l([]));
+  }
 
   public disconnect() {
     if (this.reconnectTimer) {
@@ -32,6 +87,7 @@ class RealtimeWSClient {
       this.ws = null;
     }
     this.notifyStatus(false);
+    this.addLog('info', 'WebSocket diputus secara manual');
   }
 
   public onStatusChange(listener: (connected: boolean) => void) {
@@ -51,7 +107,10 @@ class RealtimeWSClient {
 
   public connect(url?: string, currentDevice?: Device, roomCode?: string) {
     const targetUrl = url || getEffectiveRelayUrl();
+    this.addLog('info', `Mencoba koneksi ke ${targetUrl}`, `Room Code: '${roomCode || 'Belum Set'}'`);
+
     if (this.ws && this.serverUrl === targetUrl && this.isConnected) {
+      this.addLog('info', `Sudah terhubung ke ${targetUrl}`);
       return;
     }
 
@@ -66,7 +125,7 @@ class RealtimeWSClient {
 
       this.ws.onopen = () => {
         this.notifyStatus(true);
-        console.log(`[Hopp WS] Connected to real sync server at ${this.serverUrl}`);
+        this.addLog('success', `WebSocket Terhubung ke ${this.serverUrl}`);
 
         if (currentDevice) {
           this.send({
@@ -74,29 +133,31 @@ class RealtimeWSClient {
             device: currentDevice,
             roomCode: roomCode || '',
           });
+          this.addLog('send', `Mengirim REGISTER_DEVICE`, `Peranti: ${currentDevice.name} | Room: '${roomCode || 'Belum Set'}'`);
         }
       };
 
       this.ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          this.addLog('recv', `Menerima event (${data.type})`, JSON.stringify(data).substring(0, 150));
           this.handlers.forEach((h) => h(data));
         } catch (e) {
-          console.error('[Hopp WS] Error parsing message:', e);
+          this.addLog('error', `Gagal parse pesan WebSocket JSON`, String(e));
         }
       };
 
-      this.ws.onclose = () => {
+      this.ws.onclose = (ev) => {
         this.notifyStatus(false);
-        console.warn('[Hopp WS] Disconnected. Reconnecting in 3s...');
+        this.addLog('warn', `WebSocket Terputus (code ${ev.code}). Reconnect dalam 3s...`, ev.reason || 'Koneksi ditutup oleh server/jaringan');
         this.scheduleReconnect(currentDevice, roomCode);
       };
 
-      this.ws.onerror = (err) => {
-        console.warn('[Hopp WS] WebSocket connection error:', err);
+      this.ws.onerror = (_err) => {
+        this.addLog('error', `Gagal terhubung ke WebSocket Relay (${this.serverUrl})`);
       };
     } catch (err) {
-      console.warn('[Hopp WS] Failed to initiate WebSocket:', err);
+      this.addLog('error', `Gagal inisialisasi WebSocket: ${err}`);
       this.scheduleReconnect(currentDevice, roomCode);
     }
   }
@@ -104,6 +165,7 @@ class RealtimeWSClient {
   private scheduleReconnect(currentDevice?: Device, roomCode?: string) {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = setTimeout(() => {
+      this.addLog('info', `Memulai ulang koneksi ke ${this.serverUrl}...`);
       this.connect(this.serverUrl, currentDevice, roomCode);
     }, 3000);
   }
@@ -111,6 +173,11 @@ class RealtimeWSClient {
   public send(data: any) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(data));
+      if (data.type !== 'REGISTER_DEVICE') {
+        this.addLog('send', `Mengirim payload (${data.type})`, JSON.stringify(data).substring(0, 120));
+      }
+    } else {
+      this.addLog('warn', `Gagal mengirim (${data.type}) - WebSocket belum terhubung`);
     }
   }
 

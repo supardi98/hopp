@@ -79,7 +79,7 @@ const getInitialCurrentDevice = (): Device => {
     name: isTauri ? 'Linux Workstation (Tauri Desktop)' : 'Web Browser Device',
     platform: isTauri ? 'linux' : 'web',
     status: 'online',
-    ipAddress: '127.0.0.1',
+    ipAddress: 'Mendeteksi...',
     isCurrentDevice: true,
     lastSync: 'Baru saja',
   };
@@ -140,7 +140,7 @@ export const useHoppStore = create<HoppState>()(
             name: isTauri ? 'Linux Workstation (Tauri Desktop)' : getBrowserName(),
             platform: isTauri ? 'linux' : 'web',
             status: 'online',
-            ipAddress: '127.0.0.1',
+            ipAddress: get().currentDevice?.ipAddress || 'Mendeteksi...',
             isCurrentDevice: true,
             lastSync: 'Baru saja',
           };
@@ -151,10 +151,7 @@ export const useHoppStore = create<HoppState>()(
           // Purge expired unpinned items based on last connection session
           get().purgeExpiredItems();
 
-          // Connect real WebSocket client with dynamic Relay URL (Hybrid: Custom UI > .env > Local Host)
-          const targetUrl = getEffectiveRelayUrl(settings.customRelayUrl);
-          wsClient.connect(targetUrl, freshCurrentDevice, settings.roomCode);
-
+          // 1. Register message listener BEFORE connecting to prevent dropping instant server handshake messages
           wsClient.onMessage((data) => {
             if (data.type === 'RECEIVE_CLIPBOARD_ITEM') {
               get().receiveBroadcastItem(data.item);
@@ -162,11 +159,23 @@ export const useHoppStore = create<HoppState>()(
               get().receiveRoomHistory(data.items, data.roomCode);
             } else if (data.type === 'DEVICE_LIST_UPDATE') {
               const currentId = get().currentDevice?.id;
+              const myServerDevice = data.devices.find((d: Device) => d.id === currentId);
               const mergedDevices: Device[] = data.devices.map((d: Device) => ({
                 ...d,
                 isCurrentDevice: d.id === currentId,
               }));
-              set({ pairedDevices: mergedDevices });
+
+              if (myServerDevice && myServerDevice.ipAddress) {
+                set({
+                  pairedDevices: mergedDevices,
+                  currentDevice: {
+                    ...get().currentDevice,
+                    ipAddress: myServerDevice.ipAddress,
+                  },
+                });
+              } else {
+                set({ pairedDevices: mergedDevices });
+              }
             } else if (data.type === 'DELETE_CLIPBOARD_ITEM') {
               const target = get().items.find((i) => i.id === data.itemId);
               if (target && (target.contentType === 'image' || target.contentType === 'file')) {
@@ -178,6 +187,10 @@ export const useHoppStore = create<HoppState>()(
               set({ items: [] });
             }
           });
+
+          // 2. Connect real WebSocket client with dynamic Relay URL
+          const targetUrl = getEffectiveRelayUrl(settings.customRelayUrl);
+          wsClient.connect(targetUrl, freshCurrentDevice, settings.roomCode);
 
           // Event-driven WS connection status updates (0% timer overhead)
           wsClient.onStatusChange((status) => {
@@ -473,6 +486,7 @@ export const useHoppStore = create<HoppState>()(
       partialize: (state) => ({
         items: state.items,
         settings: state.settings,
+        currentDevice: state.currentDevice,
       }),
     }
   )

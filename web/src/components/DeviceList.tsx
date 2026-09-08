@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Terminal, Monitor, Smartphone, Globe, Plus, Trash2, CheckCircle2, Info, X, ShieldCheck } from 'lucide-react';
+import { Terminal, Monitor, Smartphone, Globe, Plus, Trash2, CheckCircle2, Info, X, ShieldCheck, Activity } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
+import { WSLogModal } from './WSLogModal';
 import type { Device, PlatformType } from '../types';
 
 export const DeviceList: React.FC = () => {
-  const { pairedDevices, removeDevice, setPairingModalOpen, settings } = useHoppStore();
+  const { pairedDevices, removeDevice, setPairingModalOpen, settings, isWsConnected } = useHoppStore();
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [isLogModalOpen, setLogModalOpen] = useState(false);
 
   const getPlatformIcon = (platform: PlatformType) => {
     switch (platform) {
@@ -33,10 +35,21 @@ export const DeviceList: React.FC = () => {
     }
   };
 
+  const formatIp = (ip?: string) => {
+    if (!ip || ip === 'Mendeteksi...') {
+      return isWsConnected ? 'Terverifikasi' : 'Mendeteksi...';
+    }
+    const str = ip.trim().replace(/^::ffff:/i, '');
+    if (str === '::1' || str === '1') {
+      return '127.0.0.1';
+    }
+    return str;
+  };
+
   return (
     <>
-      <div className="glass-card rounded-2xl p-5 border border-slate-800/80 space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800/80 space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <h2 className="text-base font-semibold text-slate-100 flex items-center space-x-2">
               <span>Peranti Terhubung</span>
@@ -47,13 +60,23 @@ export const DeviceList: React.FC = () => {
             <p className="text-xs text-slate-400">Klik kartu peranti untuk melihat detail koneksi</p>
           </div>
 
-          <button
-            onClick={() => setPairingModalOpen(true)}
-            className="p-1.5 text-xs text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg border border-indigo-500/20 transition-all flex items-center space-x-1"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Tambah</span>
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setLogModalOpen(true)}
+              className="p-1.5 px-2.5 text-xs font-semibold text-cyan-300 hover:text-white bg-cyan-950/60 hover:bg-cyan-900/80 rounded-lg border border-cyan-700/50 transition-all flex items-center space-x-1.5 shadow-sm"
+            >
+              <Activity className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Log WS</span>
+            </button>
+
+            <button
+              onClick={() => setPairingModalOpen(true)}
+              className="p-1.5 px-2.5 text-xs font-semibold text-indigo-300 hover:text-white bg-indigo-950/60 hover:bg-indigo-900/80 rounded-lg border border-indigo-700/50 transition-all flex items-center space-x-1 shadow-sm"
+            >
+              <Plus className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Tambah</span>
+            </button>
+          </div>
         </div>
 
         <div className="space-y-2.5">
@@ -69,7 +92,7 @@ export const DeviceList: React.FC = () => {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 truncate">
-                  <div className="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center flex-shrink-0">
+                  <div className="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center shrink-0">
                     {getPlatformIcon(device.platform)}
                   </div>
 
@@ -79,7 +102,7 @@ export const DeviceList: React.FC = () => {
                         {device.name}
                       </span>
                       {device.isCurrentDevice && (
-                        <span className="flex-shrink-0 flex items-center space-x-1 text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
+                        <span className="shrink-0 flex items-center space-x-1 text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
                           <CheckCircle2 className="w-3 h-3" />
                           <span>Peranti Ini</span>
                         </span>
@@ -88,22 +111,21 @@ export const DeviceList: React.FC = () => {
 
                     <div className="flex items-center space-x-2">
                       <span className="text-[11px] font-mono font-medium text-slate-400">
-                        IP: {device.ipAddress || '127.0.0.1'}
+                        IP: {formatIp(device.ipAddress)}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Status & Actions */}
-                <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Terhubung (Online)" />
+                <div className="flex items-center space-x-2 shrink-0 ml-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
 
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedDevice(device);
                     }}
-                    title="Detail Peranti"
                     className="p-1 text-slate-400 hover:text-indigo-300 rounded hover:bg-indigo-500/10"
                   >
                     <Info className="w-4 h-4" />
@@ -115,7 +137,6 @@ export const DeviceList: React.FC = () => {
                         e.stopPropagation();
                         removeDevice(device.id);
                       }}
-                      title="Putuskan koneksi peranti"
                       className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -157,7 +178,9 @@ export const DeviceList: React.FC = () => {
 
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
                 <span className="text-slate-400 font-medium">Alamat IP (Jaringan):</span>
-                <span className="font-mono font-bold text-indigo-300">{selectedDevice.ipAddress || '127.0.0.1'}</span>
+                <span className="font-mono font-bold text-indigo-300">
+                  {formatIp(selectedDevice.ipAddress)}
+                </span>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
@@ -193,6 +216,9 @@ export const DeviceList: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Live WebSocket Debugger Log Modal */}
+      <WSLogModal isOpen={isLogModalOpen} onClose={() => setLogModalOpen(false)} />
     </>
   );
 };

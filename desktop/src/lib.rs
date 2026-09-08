@@ -20,8 +20,8 @@ pub fn run() {
         )?;
       }
 
-      // Start embedded serverless WebSocket relay server inside active Tokio runtime
-      server::start_embedded_server();
+      // Standalone Node.js server (node server/index.js) is used as the single unified server
+      // server::start_embedded_server();
 
       Ok(())
     })
