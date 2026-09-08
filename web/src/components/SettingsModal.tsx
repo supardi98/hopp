@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, RefreshCw, Key, Database, Sliders, Globe, RotateCcw, Copy, Check, AlertTriangle, Zap } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 import { generateSecretKey, isSubtleCryptoAvailable } from '../lib/crypto';
@@ -8,6 +8,20 @@ import { writeSystemClipboard } from '../lib/nativeClipboard';
 export const SettingsModal: React.FC = () => {
   const { isSettingsModalOpen, setSettingsModalOpen, settings, updateSettings, showToast } = useHoppStore();
   const [copiedKey, setCopiedKey] = useState(false);
+
+  useEffect(() => {
+    if (!isSettingsModalOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setSettingsModalOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSettingsModalOpen, setSettingsModalOpen]);
 
   if (!isSettingsModalOpen) return null;
 

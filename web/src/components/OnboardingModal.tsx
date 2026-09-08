@@ -221,6 +221,26 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
     }
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isScanning) {
+          stopCameraScan();
+        }
+        if (settings.isRoomSet) {
+          e.preventDefault();
+          stopCameraScan();
+          onClose();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, settings.isRoomSet, isScanning, onClose]);
+
   // MUST BE PLACED AFTER ALL HOOKS!
   if (!isOpen) return null;
 

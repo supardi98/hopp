@@ -46,3 +46,14 @@ body {
   background: rgba(30, 41, 59, 0.98);
   border-color: rgba(99, 102, 241, 0.35);
 }
+
+/* Hide scrollbar utility with smooth touch scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+}

@@ -28,6 +28,20 @@ export const PairingModal: React.FC = () => {
     }
   }, [isPairingModalOpen, pairingUrl]);
 
+  useEffect(() => {
+    if (!isPairingModalOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setPairingModalOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPairingModalOpen, setPairingModalOpen]);
+
   if (!isPairingModalOpen) return null;
 
   const handleCopyRoomCode = () => {

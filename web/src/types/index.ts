@@ -32,6 +32,8 @@ export interface ClipboardItem {
   fileSize?: number;
   mimeType?: string;
   fileUrl?: string;
+  tags?: string[];
+  expiresAt?: number;
 }
 
 export interface E2EESettings {

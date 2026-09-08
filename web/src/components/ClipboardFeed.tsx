@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Search, Trash2, Code, Link2, FileText, Pin, Layers, Image as ImageIcon, FileUp, AlertTriangle, X } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 import { ClipboardCard } from './ClipboardCard';
@@ -15,6 +15,43 @@ export const ClipboardFeed: React.FC = () => {
   } = useHoppStore();
 
   const [showConfirmClear, setShowConfirmClear] = useState(false);
+
+  // Mouse Drag-to-Scroll & Mouse Wheel horizontal scroll logic for desktop
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeftState, setScrollLeftState] = useState(0);
+  const [hasDragged, setHasDragged] = useState(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    setIsMouseDown(true);
+    setHasDragged(false);
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeftState(scrollRef.current.scrollLeft);
+  };
+
+  const handleMouseLeaveOrUp = () => {
+    setIsMouseDown(false);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isMouseDown || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    if (Math.abs(walk) > 5) {
+      setHasDragged(true);
+    }
+    scrollRef.current.scrollLeft = scrollLeftState - walk;
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (!scrollRef.current) return;
+    if (e.deltaY !== 0) {
+      scrollRef.current.scrollLeft += e.deltaY;
+    }
+  };
 
   const handleConfirmClear = () => {
     clearAllItems();
@@ -46,14 +83,28 @@ export const ClipboardFeed: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Search & Filter Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 glass-card rounded-2xl p-3 border border-slate-800/80">
-        {/* Tab Filters */}
-        <div className="flex items-center space-x-1 overflow-x-auto pb-1 sm:pb-0">
+      <div className="flex items-center justify-between gap-2 sm:gap-3 glass-card rounded-2xl p-2 sm:p-2.5 border border-slate-800/80">
+        {/* Tab Filters (Supports Touch Swipe + Mouse Click & Drag + Mouse Scroll Wheel) */}
+        <div
+          ref={scrollRef}
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeaveOrUp}
+          onMouseUp={handleMouseLeaveOrUp}
+          onMouseMove={handleMouseMove}
+          onWheel={handleWheel}
+          className={`flex items-center space-x-1 overflow-x-auto no-scrollbar flex-1 min-w-0 py-0.5 select-none ${
+            isMouseDown ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
+        >
           {tabOptions.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap shrink-0 ${
+              onClick={() => {
+                if (!hasDragged) {
+                  setActiveTab(tab.id);
+                }
+              }}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap shrink-0 touch-manipulation active:scale-95 ${
                 activeTab === tab.id
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -66,15 +117,15 @@ export const ClipboardFeed: React.FC = () => {
         </div>
 
         {/* Search Bar & Clear Button */}
-        <div className="flex items-center space-x-2">
-          <div className="relative flex-1 sm:w-56">
-            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+        <div className="flex items-center space-x-2 shrink-0">
+          <div className="relative w-32 sm:w-36 md:w-40 focus-within:w-44 sm:focus-within:w-52 transition-all duration-200">
+            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari clipboard/file..."
-              className="w-full pl-8 pr-3 py-1.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/60"
+              placeholder="Cari..."
+              className="w-full pl-7 pr-2.5 py-1.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/60"
             />
           </div>
 

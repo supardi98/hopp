@@ -1,9 +1,23 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ShieldCheck, X, Lock, Eye, Server, Cpu } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 
 export const E2EEModal: React.FC = () => {
   const { isE2EEModalOpen, setE2EEModalOpen, settings } = useHoppStore();
+
+  useEffect(() => {
+    if (!isE2EEModalOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setE2EEModalOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isE2EEModalOpen, setE2EEModalOpen]);
 
   if (!isE2EEModalOpen) return null;
 

@@ -7,6 +7,7 @@ import { PairingModal } from './components/PairingModal';
 import { SettingsModal } from './components/SettingsModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { E2EEModal } from './components/E2EEModal';
+import { CommandPalette } from './components/CommandPalette';
 import { MonitorSmartphone, RefreshCw, KeyRound, ShieldCheck, Check } from 'lucide-react';
 import { useHoppStore } from './store/useHoppStore';
 import { readSystemClipboard, isTauriEnvironment } from './lib/nativeClipboard';
@@ -28,7 +29,28 @@ export function App() {
   } = useHoppStore();
 
   const [pendingJoin, setPendingJoin] = useState<{ roomCode: string; secretKey?: string } | null>(null);
+  const [isCommandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const lastObservedClipboardRef = useRef<string>('');
+
+  // Global Keyboard Shortcuts Listener (Ctrl+K for Command Palette, Esc for Modals/Sheets)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      } else if (e.key === 'Escape') {
+        if (pendingJoin) {
+          e.preventDefault();
+          setPendingJoin(null);
+        } else if (isDeviceListOpen) {
+          e.preventDefault();
+          setDeviceListOpen(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pendingJoin, isDeviceListOpen, setDeviceListOpen]);
 
   useEffect(() => {
     // Detect URL query parameters for invitation link (e.g. ?room=HOPP-1234&key=A7B9C3)
@@ -154,7 +176,7 @@ export function App() {
       ) : (
         <>
           {/* Main Top Header */}
-          <Header />
+          <Header onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
 
           {/* Main Dashboard Layout */}
           <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -186,6 +208,7 @@ export function App() {
           )}
 
           {/* Modals */}
+          <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
           <PairingModal />
           <SettingsModal />
           <E2EEModal />

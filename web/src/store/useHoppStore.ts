@@ -60,6 +60,8 @@ interface HoppState {
   pairNewDevice: (device: Omit<Device, 'id'>) => void;
   removeDevice: (deviceId: string) => void;
   simulateSimultaneousPaste: () => void;
+  setItemTags: (id: string, tags: string[]) => void;
+  setItemSelfDestruct: (id: string, durationMinutes: number | null) => void;
 }
 
 const isLocalLanIp = (senderIp?: string, myIp?: string): boolean => {
@@ -341,15 +343,30 @@ export const useHoppStore = create<HoppState>()(
         purgeExpiredItems: () => {
           const { items, settings } = get();
           const now = Date.now();
+
+          // 1. Purge items with individual self-destruct expiresAt reached
+          const selfDestructExpired = items.filter(
+            (item) => item.expiresAt && now >= item.expiresAt
+          );
+          if (selfDestructExpired.length > 0) {
+            selfDestructExpired.forEach((item) => {
+              if (item.contentType === 'image' || item.contentType === 'file') {
+                deletePayloadFromDB(item.id);
+              }
+            });
+          }
+
+          const currentItems = items.filter((item) => !item.expiresAt || now < item.expiresAt);
+
           const lastConn = settings.lastConnectedTimestamp || now;
           const retentionHours = settings.retentionHours || 24;
           const retentionMs = retentionHours * 60 * 60 * 1000;
 
-          // Check if user hasn't been connected for more than retention period
+          // 2. Check if user hasn't been connected for more than retention period
           if (now - lastConn >= retentionMs) {
             const expiredCutoff = now - retentionMs;
-            const keptItems = items.filter((item) => item.pinned || item.timestamp >= expiredCutoff);
-            const removedItems = items.filter((item) => !item.pinned && item.timestamp < expiredCutoff);
+            const keptItems = currentItems.filter((item) => item.pinned || item.timestamp >= expiredCutoff);
+            const removedItems = currentItems.filter((item) => !item.pinned && item.timestamp < expiredCutoff);
 
             if (removedItems.length > 0) {
               removedItems.forEach((item) => {
@@ -362,11 +379,38 @@ export const useHoppStore = create<HoppState>()(
                 settings: { ...settings, lastConnectedTimestamp: now },
               });
               get().showToast(`Auto-hapus 24 jam: ${removedItems.length} item unpinned dibersihkan`);
-            } else {
-              set({ settings: { ...settings, lastConnectedTimestamp: now } });
+              return;
             }
+          }
+
+          if (selfDestructExpired.length > 0) {
+            set({ items: currentItems });
+            get().showToast(`${selfDestructExpired.length} item rahasia terhapus otomatis (Self-Destruct)`);
           } else {
             set({ settings: { ...settings, lastConnectedTimestamp: now } });
+          }
+        },
+
+        setItemTags: (id, tags) => {
+          set((state) => ({
+            items: state.items.map((item) =>
+              item.id === id ? { ...item, tags } : item
+            ),
+          }));
+        },
+
+        setItemSelfDestruct: (id, durationMinutes) => {
+          const now = Date.now();
+          const expiresAt = durationMinutes ? now + durationMinutes * 60 * 1000 : undefined;
+          set((state) => ({
+            items: state.items.map((item) =>
+              item.id === id ? { ...item, expiresAt } : item
+            ),
+          }));
+          if (durationMinutes) {
+            get().showToast(`Self-destruct disetel ${durationMinutes} menit`);
+          } else {
+            get().showToast('Self-destruct dibatalkan');
           }
         },
 

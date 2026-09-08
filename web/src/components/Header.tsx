@@ -1,8 +1,12 @@
 import React from 'react';
-import { ShieldCheck, Settings, KeyRound, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Settings, KeyRound, RefreshCw, Command } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onOpenCommandPalette?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onOpenCommandPalette }) => {
   const {
     pairedDevices,
     settings,
@@ -44,6 +48,14 @@ export const Header: React.FC = () => {
 
           {/* Mobile Action Buttons */}
           <div className="flex items-center space-x-1.5 sm:space-x-2 md:hidden">
+            {onOpenCommandPalette && (
+              <button
+                onClick={onOpenCommandPalette}
+                className="p-1.5 text-indigo-300 bg-indigo-950/60 rounded-lg border border-indigo-700/50"
+              >
+                <Command className="w-4 h-4" />
+              </button>
+            )}
             <button
               onClick={() => setOnboardingOpen(true)}
               className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl border border-indigo-400/30 shadow-md shadow-indigo-600/30"
@@ -83,6 +95,17 @@ export const Header: React.FC = () => {
 
         {/* Desktop Action Buttons */}
         <div className="hidden md:flex items-center space-x-2">
+          {onOpenCommandPalette && (
+            <button
+              onClick={onOpenCommandPalette}
+              className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-xl border border-slate-700/60 transition-all shadow-sm"
+              title="Command Palette (Ctrl + K)"
+            >
+              <Command className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="font-mono text-[11px] text-slate-400">Ctrl + K</span>
+            </button>
+          )}
+
           <button
             onClick={() => setOnboardingOpen(true)}
             className="flex items-center space-x-2 px-3.5 py-1.5 text-xs font-extrabold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl border border-indigo-400/30 transition-all hover:scale-[1.02] shadow-md shadow-indigo-600/30"
