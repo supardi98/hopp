@@ -148,7 +148,8 @@ class RealtimeWSClient {
 
           // Handle Tauri OS Remote Input Execution (Mouse & Keyboard Injection on Desktop App)
           if (data.type === 'REMOTE_CONTROL_INPUT') {
-            if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+            console.log('[WS] Received REMOTE_CONTROL_INPUT payload:', data);
+            if (typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)) {
               import('@tauri-apps/api/core')
                 .then(({ invoke }) => {
                   invoke('execute_remote_input', {
@@ -157,9 +158,13 @@ class RealtimeWSClient {
                     dy: Math.round(data.dy || 0),
                     text: data.text || '',
                     key: data.key || '',
-                  }).catch((err) => console.error('Tauri remote input error:', err));
+                  })
+                    .then(() => console.log('[Tauri] Remote input executed successfully'))
+                    .catch((err) => console.error('[Tauri] execute_remote_input error:', err));
                 })
-                .catch(() => {});
+                .catch((err) => console.error('[Tauri] Core import error:', err));
+            } else {
+              console.warn('[WS] Received REMOTE_CONTROL_INPUT but client is not running inside Tauri desktop app.');
             }
           }
 

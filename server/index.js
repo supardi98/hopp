@@ -141,6 +141,8 @@ wss.on('connection', (ws, req) => {
         const targetRoom = data.roomCode || session.roomCode;
         if (!targetRoom) return;
 
+        console.log(`[Remote Control Relay] From ${session.deviceId} -> Target: ${data.targetDeviceId || 'ALL'} (Action: ${data.action})`);
+
         clients.forEach((client) => {
           if (
             client.roomCode === targetRoom &&
