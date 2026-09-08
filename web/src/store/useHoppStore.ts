@@ -72,34 +72,21 @@ const limitItemsWithPinnedProtection = (allItems: ClipboardItem[], maxItems: num
   return [...pinned, ...truncatedUnpinned].sort((a, b) => b.timestamp - a.timestamp);
 };
 
-const initialDevices: Device[] = [
-  {
-    id: 'dev-linux-01',
-    name: 'Linux Workstation (Ubuntu 24.04)',
-    platform: 'linux',
+const getInitialCurrentDevice = (): Device => {
+  const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  return {
+    id: `dev-${Math.random().toString(36).substring(2, 9)}`,
+    name: isTauri ? 'Linux Workstation (Tauri Desktop)' : 'Web Browser Device',
+    platform: isTauri ? 'linux' : 'web',
     status: 'online',
-    ipAddress: '192.168.1.104',
+    ipAddress: '127.0.0.1',
     isCurrentDevice: true,
     lastSync: 'Baru saja',
-  },
-  {
-    id: 'dev-win-02',
-    name: 'Windows Desktop (Win 11)',
-    platform: 'windows',
-    status: 'online',
-    ipAddress: '192.168.1.112',
-    lastSync: '2 menit lalu',
-  },
-  {
-    id: 'dev-android-03',
-    name: 'Galaxy S24 Ultra (Android 14)',
-    platform: 'android',
-    status: 'online',
-    ipAddress: '192.168.1.150',
-    batteryLevel: 88,
-    lastSync: '5 menit lalu',
-  },
-];
+  };
+};
+
+const defaultDevice = getInitialCurrentDevice();
+const initialDevices: Device[] = [defaultDevice];
 
 const initialItems: ClipboardItem[] = [];
 
@@ -112,7 +99,7 @@ export const useHoppStore = create<HoppState>()(
       });
 
       return {
-        currentDevice: initialDevices[0],
+        currentDevice: defaultDevice,
         pairedDevices: initialDevices,
         items: initialItems,
         settings: {
@@ -138,13 +125,34 @@ export const useHoppStore = create<HoppState>()(
         isWsConnected: false,
 
         initRealtimeSync: () => {
-          const { currentDevice, settings } = get();
+          const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+          const getBrowserName = () => {
+            const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+            if (ua.includes('Firefox')) return 'Firefox Browser';
+            if (ua.includes('Edg')) return 'Edge Browser';
+            if (ua.includes('Chrome')) return 'Chrome Browser';
+            if (ua.includes('Safari')) return 'Safari Browser';
+            return 'Web Browser';
+          };
+
+          const freshCurrentDevice: Device = {
+            id: get().currentDevice?.id || `dev-${Math.random().toString(36).substring(2, 9)}`,
+            name: isTauri ? 'Linux Workstation (Tauri Desktop)' : getBrowserName(),
+            platform: isTauri ? 'linux' : 'web',
+            status: 'online',
+            ipAddress: '127.0.0.1',
+            isCurrentDevice: true,
+            lastSync: 'Baru saja',
+          };
+
+          set({ currentDevice: freshCurrentDevice });
+          const { settings } = get();
 
           // Purge expired unpinned items based on last connection session
           get().purgeExpiredItems();
 
           // Connect real WebSocket client with Room Code
-          wsClient.connect('ws://localhost:8080', currentDevice, settings.roomCode);
+          wsClient.connect('ws://localhost:8080', freshCurrentDevice, settings.roomCode);
 
           wsClient.onMessage((data) => {
             if (data.type === 'RECEIVE_CLIPBOARD_ITEM') {
@@ -152,7 +160,12 @@ export const useHoppStore = create<HoppState>()(
             } else if (data.type === 'ROOM_HISTORY_SYNC') {
               get().receiveRoomHistory(data.items, data.roomCode);
             } else if (data.type === 'DEVICE_LIST_UPDATE') {
-              set({ pairedDevices: data.devices });
+              const currentId = get().currentDevice?.id;
+              const mergedDevices: Device[] = data.devices.map((d: Device) => ({
+                ...d,
+                isCurrentDevice: d.id === currentId,
+              }));
+              set({ pairedDevices: mergedDevices });
             } else if (data.type === 'DELETE_CLIPBOARD_ITEM') {
               const target = get().items.find((i) => i.id === data.itemId);
               if (target && (target.contentType === 'image' || target.contentType === 'file')) {
@@ -456,9 +469,7 @@ export const useHoppStore = create<HoppState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         items: state.items,
-        pairedDevices: state.pairedDevices,
         settings: state.settings,
-        currentDevice: state.currentDevice,
       }),
     }
   )

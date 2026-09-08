@@ -20,8 +20,9 @@ const roomHistories = new Map();
 const MAX_ROOM_HISTORY = 20;
 
 wss.on('connection', (ws, req) => {
-  const ip = req.socket.remoteAddress || 'unknown';
-  const session = { ws, roomCode: '' };
+  const ipRaw = req.socket.remoteAddress || '127.0.0.1';
+  const ip = ipRaw.replace(/^.*:/, '') || '127.0.0.1';
+  const session = { ws, roomCode: '', ipAddress: ip };
   clients.push(session);
 
   console.log(`[+] Device connected from ${ip}`);
@@ -158,6 +159,7 @@ function broadcastDeviceList(roomCode) {
       id: c.deviceId,
       name: c.deviceName,
       platform: c.platform,
+      ipAddress: c.ipAddress || '127.0.0.1',
       status: 'online',
     }));
 

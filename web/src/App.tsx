@@ -116,7 +116,7 @@ export function App() {
               <span>Proteksi Privasi E2EE (Zero-Knowledge)</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              Teks, sandi, dan link disinkronkan langsung via P2P LAN (mDNS/WebSocket). Server relay tidak menyimpan teks clipboard Anda.
+              Teks, gambar, dan file di-enkripsi di peranti (AES-256-GCM) sebelum dikirim via WebSocket Relay. Server relay bersifat Zero-Knowledge dan tidak dapat membaca teks asli Anda.
             </p>
           </div>
         </div>

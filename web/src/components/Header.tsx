@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Wifi, Laptop, Smartphone, Plus, Settings, HelpCircle, RefreshCw, KeyRound, Copy, Check } from 'lucide-react';
+import { ShieldCheck, Wifi, Laptop, Smartphone, Plus, Settings, HelpCircle, KeyRound, Copy, Check } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 import { writeSystemClipboard } from '../lib/nativeClipboard';
 
@@ -13,7 +13,6 @@ export const Header: React.FC = () => {
     setOnboardingOpen,
     activeToast,
     showToast,
-    simulateSimultaneousPaste,
   } = useHoppStore();
 
   const [copiedRoom, setCopiedRoom] = useState(false);
@@ -109,15 +108,6 @@ export const Header: React.FC = () => {
 
         {/* Action Controls */}
         <div className="flex items-center space-x-2 self-end md:self-auto">
-          <button
-            onClick={simulateSimultaneousPaste}
-            title="Simulasi Paste 2-Arah dari Peranti Lain"
-            className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-purple-300 bg-purple-950/60 hover:bg-purple-900/80 border border-purple-800/60 rounded-lg transition-all"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Simulasi Remote Copy</span>
-          </button>
-
           <button
             onClick={() => setPairingModalOpen(true)}
             className="flex items-center space-x-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-lg shadow-md shadow-indigo-600/20 border border-indigo-400/30 transition-all hover:scale-[1.02]"
