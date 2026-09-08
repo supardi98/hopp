@@ -73,6 +73,21 @@ class RealtimeWSClient {
     });
   }
 
+  public deleteClipboardItem(itemId: string, roomCode?: string) {
+    this.send({
+      type: 'DELETE_CLIPBOARD_ITEM',
+      itemId,
+      roomCode: roomCode || '',
+    });
+  }
+
+  public clearRoomHistory(roomCode?: string) {
+    this.send({
+      type: 'CLEAR_ROOM_HISTORY',
+      roomCode: roomCode || '',
+    });
+  }
+
   public onMessage(handler: MessageHandler) {
     this.handlers.push(handler);
     return () => {

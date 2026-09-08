@@ -90,6 +90,52 @@ wss.on('connection', (ws, req) => {
           }
         });
       }
+
+      // 3. Delete Clipboard Item from Room History Cache & Broadcast to Room
+      if (data.type === 'DELETE_CLIPBOARD_ITEM') {
+        const targetRoom = data.roomCode || session.roomCode;
+        if (targetRoom && roomHistories.has(targetRoom)) {
+          const history = roomHistories.get(targetRoom);
+          roomHistories.set(targetRoom, history.filter(i => i.id !== data.itemId));
+        }
+
+        clients.forEach((client) => {
+          if (
+            client.roomCode === targetRoom &&
+            client.ws !== ws &&
+            client.ws.readyState === WebSocket.OPEN
+          ) {
+            client.ws.send(
+              JSON.stringify({
+                type: 'DELETE_CLIPBOARD_ITEM',
+                itemId: data.itemId,
+              })
+            );
+          }
+        });
+      }
+
+      // 4. Clear All Items from Room History Cache
+      if (data.type === 'CLEAR_ROOM_HISTORY') {
+        const targetRoom = data.roomCode || session.roomCode;
+        if (targetRoom) {
+          roomHistories.set(targetRoom, []);
+        }
+
+        clients.forEach((client) => {
+          if (
+            client.roomCode === targetRoom &&
+            client.ws !== ws &&
+            client.ws.readyState === WebSocket.OPEN
+          ) {
+            client.ws.send(
+              JSON.stringify({
+                type: 'CLEAR_ROOM_HISTORY',
+              })
+            );
+          }
+        });
+      }
     } catch (err) {
       console.error('Error processing message:', err);
     }

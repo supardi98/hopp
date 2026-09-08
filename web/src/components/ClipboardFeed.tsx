@@ -1,5 +1,5 @@
-import React from 'react';
-import { Search, Trash2, Code, Link2, FileText, Pin, Layers, Image as ImageIcon, FileUp } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Trash2, Code, Link2, FileText, Pin, Layers, Image as ImageIcon, FileUp, AlertTriangle, X } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 import { ClipboardCard } from './ClipboardCard';
 import type { ContentType } from '../types';
@@ -13,6 +13,13 @@ export const ClipboardFeed: React.FC = () => {
     setSearchQuery,
     clearAllItems,
   } = useHoppStore();
+
+  const [showConfirmClear, setShowConfirmClear] = useState(false);
+
+  const handleConfirmClear = () => {
+    clearAllItems();
+    setShowConfirmClear(false);
+  };
 
   const filteredItems = items.filter((item) => {
     // Search query filter
@@ -73,7 +80,7 @@ export const ClipboardFeed: React.FC = () => {
 
           {items.length > 0 && (
             <button
-              onClick={clearAllItems}
+              onClick={() => setShowConfirmClear(true)}
               title="Bersihkan Semua History"
               className="p-2 text-slate-500 hover:text-red-400 bg-slate-900 hover:bg-red-500/10 rounded-xl border border-slate-800 transition-colors"
             >
@@ -99,6 +106,50 @@ export const ClipboardFeed: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Clear All Confirmation Modal */}
+      {showConfirmClear && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-full max-w-md glass-panel rounded-3xl p-6 border border-red-500/30 shadow-2xl space-y-5">
+            <button
+              onClick={() => setShowConfirmClear(false)}
+              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800/50 hover:bg-slate-800"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center space-x-3">
+              <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-100">Bersihkan Semua Riwayat?</h3>
+                <p className="text-xs text-slate-400">Konfirmasi Penghapusan Seluruh Item</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Tindakan ini akan menghapus **seluruh {items.length} item clipboard & file** di peranti ini dan memicu pembersihan riwayat di room server.
+            </p>
+
+            <div className="flex items-center justify-end space-x-3 pt-2">
+              <button
+                onClick={() => setShowConfirmClear(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-all"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleConfirmClear}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-500 rounded-xl shadow-lg shadow-red-600/30 transition-all flex items-center space-x-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Ya, Hapus Semua</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -121,6 +121,7 @@ export const useHoppStore = create<HoppState>()(
           roomCode: '',
           isRoomSet: false,
           autoSync: true,
+          autoBroadcastClipboard: true,
           soundAlert: true,
           maxItems: 50,
           lanSyncOnly: true,
@@ -152,6 +153,15 @@ export const useHoppStore = create<HoppState>()(
               get().receiveRoomHistory(data.items, data.roomCode);
             } else if (data.type === 'DEVICE_LIST_UPDATE') {
               set({ pairedDevices: data.devices });
+            } else if (data.type === 'DELETE_CLIPBOARD_ITEM') {
+              const target = get().items.find((i) => i.id === data.itemId);
+              if (target && (target.contentType === 'image' || target.contentType === 'file')) {
+                deletePayloadFromDB(data.itemId);
+              }
+              set((state) => ({ items: state.items.filter((item) => item.id !== data.itemId) }));
+            } else if (data.type === 'CLEAR_ROOM_HISTORY') {
+              clearAllPayloadsDB();
+              set({ items: [] });
             }
           });
 
@@ -353,11 +363,13 @@ export const useHoppStore = create<HoppState>()(
         },
 
         deleteItem: (id) => {
-          const target = get().items.find((i) => i.id === id);
+          const { items, settings } = get();
+          const target = items.find((i) => i.id === id);
           if (target && (target.contentType === 'image' || target.contentType === 'file')) {
             deletePayloadFromDB(id);
           }
           set((state) => ({ items: state.items.filter((item) => item.id !== id) }));
+          wsClient.deleteClipboardItem(id, settings.roomCode);
           get().showToast('Item dihapus');
         },
 
@@ -370,8 +382,10 @@ export const useHoppStore = create<HoppState>()(
         },
 
         clearAllItems: () => {
+          const { settings } = get();
           clearAllPayloadsDB();
           set({ items: [] });
+          wsClient.clearRoomHistory(settings.roomCode);
           get().showToast('Semua item dibersihkan');
         },
 

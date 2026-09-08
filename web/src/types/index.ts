@@ -40,6 +40,7 @@ export interface E2EESettings {
   roomCode: string;
   isRoomSet?: boolean;
   autoSync: boolean;
+  autoBroadcastClipboard?: boolean;
   soundAlert: boolean;
   maxItems: number;
   lanSyncOnly: boolean;

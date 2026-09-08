@@ -10,8 +10,12 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { Terminal, Shield, ArrowRightLeft } from 'lucide-react';
 import { useHoppStore } from './store/useHoppStore';
 
+import { useRef } from 'react';
+import { readSystemClipboard, isTauriEnvironment } from './lib/nativeClipboard';
+
 export function App() {
-  const { setGuideModalOpen, initRealtimeSync, isOnboardingOpen, setOnboardingOpen, settings } = useHoppStore();
+  const { setGuideModalOpen, initRealtimeSync, isOnboardingOpen, setOnboardingOpen, settings, addClipboardItem, items } = useHoppStore();
+  const lastObservedClipboardRef = useRef<string>('');
 
   useEffect(() => {
     if (settings.isRoomSet) {
@@ -20,6 +24,43 @@ export function App() {
       setOnboardingOpen(true);
     }
   }, [initRealtimeSync, settings.isRoomSet, setOnboardingOpen]);
+
+  // Native OS Clipboard Listener Loop (Auto-detect Ctrl+C on Desktop)
+  useEffect(() => {
+    let intervalId: any = null;
+
+    const checkOSClipboard = async () => {
+      // Only run auto-broadcast if enabled in settings
+      if (settings.autoBroadcastClipboard === false) return;
+
+      try {
+        const isTauri = await isTauriEnvironment();
+        if (!isTauri) return;
+
+        const currentText = await readSystemClipboard();
+        if (!currentText || !currentText.trim()) return;
+
+        // Skip if same as last observed or already in store top item
+        if (currentText === lastObservedClipboardRef.current) return;
+        const topItem = items[0];
+        if (topItem && topItem.content === currentText.trim()) {
+          lastObservedClipboardRef.current = currentText;
+          return;
+        }
+
+        // New Ctrl+C detected! Update ref & broadcast to room
+        lastObservedClipboardRef.current = currentText;
+        await addClipboardItem(currentText);
+      } catch (err) {
+        // Silently ignore clipboard permission errors during polling
+      }
+    };
+
+    intervalId = setInterval(checkOSClipboard, 1500);
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [addClipboardItem, items, settings.autoBroadcastClipboard]);
 
   return (
     <div className="min-h-screen bg-[#090d16] text-slate-100 selection:bg-indigo-500 selection:text-white pb-16">
