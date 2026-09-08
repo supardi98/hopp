@@ -4,6 +4,8 @@ import { useHoppStore } from '../store/useHoppStore';
 import { generateSecretKey } from '../lib/crypto';
 import { getEffectiveRelayUrl } from '../lib/wsClient';
 
+import { writeSystemClipboard } from '../lib/nativeClipboard';
+
 export const SettingsModal: React.FC = () => {
   const { isSettingsModalOpen, setSettingsModalOpen, settings, updateSettings, showToast } = useHoppStore();
   const [copiedKey, setCopiedKey] = useState(false);
@@ -18,7 +20,7 @@ export const SettingsModal: React.FC = () => {
 
   const handleCopySecretKey = () => {
     if (!settings.secretKey) return;
-    navigator.clipboard.writeText(settings.secretKey);
+    writeSystemClipboard(settings.secretKey);
     setCopiedKey(true);
     showToast('Secret Key disalin ke clipboard!');
     setTimeout(() => setCopiedKey(false), 2000);

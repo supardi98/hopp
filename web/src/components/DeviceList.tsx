@@ -89,9 +89,9 @@ export const DeviceList: React.FC = () => {
         </div>
 
         <div className="space-y-2.5">
-          {pairedDevices.map((device) => (
+          {pairedDevices.map((device, index) => (
             <div
-              key={device.id}
+              key={`${device.id}-${index}`}
               onClick={() => setSelectedDevice(device)}
               className={`group relative p-3 rounded-xl border transition-all cursor-pointer ${
                 device.isCurrentDevice

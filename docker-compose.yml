@@ -4,7 +4,6 @@ services:
       context: ./server
       dockerfile: Dockerfile
     container_name: hopp-server
-    # Server port is NOT exposed externally — accessed ONLY via internal Docker network by Nginx
     environment:
       - PORT=4077
       - MAX_PAYLOAD_MB=15
@@ -17,9 +16,6 @@ services:
       context: .
       dockerfile: web/Dockerfile
     container_name: hopp-web
-    # Bind to 127.0.0.1 loopback only — unexposed from public IP (ideal for Nginx/Caddy/Cloudflare Tunnel)
-    ports:
-      - "127.0.0.1:${WEB_PORT:-4080}:80"
     depends_on:
       - hopp-server
     restart: unless-stopped

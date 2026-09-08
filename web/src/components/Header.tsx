@@ -118,11 +118,11 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Toast */}
+      {/* Toast — fixed on top of all modals (z-[100]) */}
       {activeToast && (
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-[-45px] z-50">
-          <div className="px-4 py-1.5 rounded-full bg-slate-900 text-indigo-100 border border-indigo-400/40 text-xs font-medium shadow-xl flex items-center space-x-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] pointer-events-none">
+          <div className="px-4 py-2 rounded-full bg-slate-900/95 text-indigo-100 border border-indigo-400/40 text-xs font-semibold shadow-2xl flex items-center space-x-2 backdrop-blur-md">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>{activeToast}</span>
           </div>
         </div>

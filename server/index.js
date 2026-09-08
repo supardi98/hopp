@@ -183,15 +183,23 @@ function broadcastDeviceList(roomCode) {
     return;
   }
 
-  const roomDevices = clients
-    .filter((c) => c.roomCode === roomCode && c.deviceId)
-    .map((c) => ({
-      id: c.deviceId,
-      name: c.deviceName,
-      platform: c.platform,
-      ipAddress: c.ipAddress || '127.0.0.1',
-      status: 'online',
-    }));
+  const seenDeviceIds = new Set();
+  const roomDevices = [];
+
+  for (const c of clients) {
+    if (c.roomCode === roomCode && c.deviceId && c.ws.readyState === WebSocket.OPEN) {
+      if (!seenDeviceIds.has(c.deviceId)) {
+        seenDeviceIds.add(c.deviceId);
+        roomDevices.push({
+          id: c.deviceId,
+          name: c.deviceName,
+          platform: c.platform,
+          ipAddress: c.ipAddress || '127.0.0.1',
+          status: 'online',
+        });
+      }
+    }
+  }
 
   const payload = JSON.stringify({
     type: 'DEVICE_LIST_UPDATE',

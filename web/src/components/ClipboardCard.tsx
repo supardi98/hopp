@@ -231,7 +231,7 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
                   deleteItem(item.id);
                 }
               }}
-              className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+              className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 bg-slate-800/40 border border-slate-700/40 rounded-lg transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -258,8 +258,7 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
                 )}
                 <button
                   onClick={() => setPreviewOpen(true)}
-                  className="absolute bottom-2 right-2 p-1.5 bg-slate-900/90 text-purple-300 hover:text-white rounded-lg border border-purple-500/30 opacity-0 group-hover/img:opacity-100 transition-opacity"
-                  title="Lihat ukuran penuh"
+                  className="absolute bottom-2 right-2 p-1.5 bg-slate-900/90 text-purple-300 hover:text-white rounded-lg border border-purple-500/30 transition-opacity"
                 >
                   <Eye className="w-4 h-4" />
                 </button>

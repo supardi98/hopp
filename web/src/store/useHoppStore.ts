@@ -207,11 +207,19 @@ export const useHoppStore = create<HoppState>()(
               get().receiveRoomHistory(data.items, data.roomCode);
             } else if (data.type === 'DEVICE_LIST_UPDATE') {
               const currentId = get().currentDevice?.id;
-              const myServerDevice = data.devices.find((d: Device) => d.id === currentId);
-              const mergedDevices: Device[] = data.devices.map((d: Device) => ({
-                ...d,
-                isCurrentDevice: d.id === currentId,
-              }));
+              const myServerDevice = (data.devices || []).find((d: Device) => d.id === currentId);
+
+              // Deduplicate devices by ID to prevent duplicate React keys
+              const deviceMap = new Map<string, Device>();
+              (data.devices || []).forEach((d: Device) => {
+                if (d && d.id && !deviceMap.has(d.id)) {
+                  deviceMap.set(d.id, {
+                    ...d,
+                    isCurrentDevice: d.id === currentId,
+                  });
+                }
+              });
+              const mergedDevices: Device[] = Array.from(deviceMap.values());
 
               if (myServerDevice && myServerDevice.ipAddress) {
                 set({

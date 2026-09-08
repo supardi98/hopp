@@ -22,7 +22,8 @@ export async function readSystemClipboard(): Promise<string> {
   try {
     if (await isTauriEnvironment()) {
       const plugin = await getTauriClipboardPlugin();
-      return await plugin.readText();
+      const text = await plugin.readText();
+      return text || '';
     }
   } catch (err) {
     console.warn('[Native Clipboard] Tauri plugin read failed, falling back to Web API:', err);
@@ -47,8 +48,31 @@ export async function writeSystemClipboard(text: string): Promise<void> {
     console.warn('[Native Clipboard] Tauri plugin write failed, falling back to Web API:', err);
   }
 
-  // Fallback to Web Browser Clipboard API
+  // Fallback 1: Web Browser Clipboard API (Requires HTTPS or localhost)
   if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
-    await navigator.clipboard.writeText(text);
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (err) {
+      console.warn('[Native Clipboard] navigator.clipboard.writeText failed, trying DOM fallback:', err);
+    }
+  }
+
+  // Fallback 2: Legacy DOM execCommand fallback (Works on HTTP / non-secure contexts over LAN)
+  if (typeof document !== 'undefined') {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+    } catch (err) {
+      console.error('[Native Clipboard] execCommand fallback failed:', err);
+    }
+    document.body.removeChild(textArea);
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Header } from './components/Header';
 import { DeviceList } from './components/DeviceList';
 import { ClipboardInput } from './components/ClipboardInput';
@@ -7,18 +7,45 @@ import { PairingModal } from './components/PairingModal';
 import { SettingsModal } from './components/SettingsModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { E2EEModal } from './components/E2EEModal';
-import { MonitorSmartphone, RefreshCw } from 'lucide-react';
+import { MonitorSmartphone, RefreshCw, KeyRound, ShieldCheck, Check } from 'lucide-react';
 import { useHoppStore } from './store/useHoppStore';
-
-import { useRef } from 'react';
 import { readSystemClipboard, isTauriEnvironment } from './lib/nativeClipboard';
 
 export function App() {
-  const { initRealtimeSync, isOnboardingOpen, setOnboardingOpen, settings, addClipboardItem, items, isOtherTabActive, reconnectAsLeader, isDeviceListOpen, setDeviceListOpen } = useHoppStore();
+  const {
+    initRealtimeSync,
+    isOnboardingOpen,
+    setOnboardingOpen,
+    settings,
+    updateSettings,
+    showToast,
+    addClipboardItem,
+    items,
+    isOtherTabActive,
+    reconnectAsLeader,
+    isDeviceListOpen,
+    setDeviceListOpen,
+  } = useHoppStore();
+
+  const [pendingJoin, setPendingJoin] = useState<{ roomCode: string; secretKey?: string } | null>(null);
   const lastObservedClipboardRef = useRef<string>('');
 
   useEffect(() => {
-    if (settings.isRoomSet) {
+    // Detect URL query parameters for invitation link (e.g. ?room=HOPP-1234&key=A7B9C3)
+    const params = new URLSearchParams(window.location.search);
+    const roomParam = params.get('room') || params.get('r');
+    const keyParam = params.get('key') || params.get('k');
+
+    if (roomParam) {
+      const formattedRoom = roomParam.trim().toUpperCase().startsWith('HOPP-')
+        ? roomParam.trim().toUpperCase()
+        : `HOPP-${roomParam.trim().toUpperCase()}`;
+
+      setPendingJoin({
+        roomCode: formattedRoom,
+        secretKey: keyParam ? keyParam.trim().toUpperCase() : undefined,
+      });
+    } else if (settings.isRoomSet) {
       initRealtimeSync();
     } else {
       setOnboardingOpen(true);
@@ -162,7 +189,93 @@ export function App() {
           <PairingModal />
           <SettingsModal />
           <E2EEModal />
-          <OnboardingModal isOpen={isOnboardingOpen} onClose={() => setOnboardingOpen(false)} />
+          <OnboardingModal isOpen={isOnboardingOpen && !pendingJoin} onClose={() => setOnboardingOpen(false)} />
+
+          {/* Join Link Confirmation Modal */}
+          {pendingJoin && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 animate-fadeIn">
+              <div className="relative w-full max-w-md glass-panel rounded-3xl p-6 border border-indigo-500/40 shadow-2xl space-y-5 text-center">
+                {/* Header Icon */}
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-cyan-400 p-0.5 mx-auto shadow-xl shadow-indigo-500/30 flex items-center justify-center">
+                  <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+                    <KeyRound className="w-7 h-7 text-indigo-400" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-xl font-extrabold text-slate-100 tracking-tight">
+                    Undangan Gabung Room Sync
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Anda mendapatkan tautan undangan untuk bergabung ke Room Sync:
+                  </p>
+                </div>
+
+                {/* Room Details Card */}
+                <div className="p-4 bg-indigo-950/50 border border-indigo-500/30 rounded-2xl space-y-2">
+                  <p className="text-[10px] uppercase font-mono font-semibold text-indigo-400 tracking-wider">
+                    Kode Room Tujuan
+                  </p>
+                  <p className="text-2xl font-mono font-black text-slate-100 tracking-wider">
+                    {pendingJoin.roomCode}
+                  </p>
+                  {pendingJoin.secretKey ? (
+                    <div className="flex items-center justify-center space-x-1.5 pt-1 text-xs text-purple-300 font-mono">
+                      <ShieldCheck className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                      <span>Kunci E2EE Terlampir ({pendingJoin.secretKey.substring(0, 6)}...)</span>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-slate-400 pt-1">
+                      Tanpa Kunci E2EE khusus terlampir
+                    </p>
+                  )}
+                </div>
+
+                <p className="text-[11px] text-slate-400 leading-snug">
+                  Klik tombol di bawah untuk menyetujui dan menghubungkan peranti ini ke Room <span className="font-mono text-indigo-300">{pendingJoin.roomCode}</span>.
+                </p>
+
+                {/* Action Buttons */}
+                <div className="flex items-center space-x-3 pt-2">
+                  <button
+                    onClick={() => {
+                      setPendingJoin(null);
+                      window.history.replaceState({}, '', window.location.pathname);
+                      if (!settings.isRoomSet) {
+                        setOnboardingOpen(true);
+                      }
+                    }}
+                    className="w-1/3 py-3 px-3 text-xs font-semibold text-slate-400 hover:text-white bg-slate-900 rounded-xl border border-slate-800 transition-all"
+                  >
+                    Batal
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const newSettings: Partial<import('./types').E2EESettings> = {
+                        roomCode: pendingJoin.roomCode,
+                        isRoomSet: true,
+                      };
+                      if (pendingJoin.secretKey) {
+                        newSettings.secretKey = pendingJoin.secretKey;
+                        newSettings.enabled = true;
+                      }
+
+                      updateSettings(newSettings);
+                      initRealtimeSync();
+                      setPendingJoin(null);
+                      showToast(`Berhasil bergabung ke Room ${pendingJoin.roomCode}!`);
+                      window.history.replaceState({}, '', window.location.pathname);
+                    }}
+                    className="w-2/3 py-3 px-4 text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center space-x-1.5"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Ya, Gabung & Sync</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
