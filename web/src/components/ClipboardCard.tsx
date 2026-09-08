@@ -5,6 +5,7 @@ import {
   Pin,
   Trash2,
   Lock,
+  Unlock,
   ExternalLink,
   Code,
   Link2,
@@ -163,10 +164,17 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
               <span className="font-medium">{item.senderDeviceName}</span>
             </div>
 
-            <span className="text-[10px] text-slate-500 flex items-center space-x-1">
-              <Lock className="w-2.5 h-2.5 text-purple-400" />
-              <span>E2EE</span>
-            </span>
+            {item.encryptedContent && item.encryptedContent !== item.content ? (
+              <span className="text-[10px] font-mono font-medium text-purple-400 flex items-center space-x-1">
+                <Lock className="w-2.5 h-2.5 text-purple-400" />
+                <span>E2EE</span>
+              </span>
+            ) : (
+              <span className="text-[10px] font-mono text-slate-500 flex items-center space-x-1">
+                <Unlock className="w-2.5 h-2.5 text-slate-500" />
+                <span>Tanpa E2EE</span>
+              </span>
+            )}
           </div>
 
           {/* Actions Bar */}

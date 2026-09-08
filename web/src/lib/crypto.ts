@@ -56,13 +56,13 @@ async function deriveKey(secretKey: string, salt: Uint8Array): Promise<CryptoKey
 }
 
 // Encrypt plaintext -> Base64 string containing salt + IV + ciphertext
-export async function encryptContent(plaintext: string, secretKey: string, roomCode?: string): Promise<string> {
-  if (!plaintext) return '';
+export async function encryptContent(plaintext: string, secretKey: string, roomCode?: string): Promise<string | undefined> {
+  if (!plaintext) return undefined;
 
   // Fallback for non-secure HTTP context where Web Crypto API subtle is disabled by browser
   if (!isSubtleCryptoAvailable()) {
     console.warn('[Web Crypto] crypto.subtle is disabled on non-secure HTTP origin. Sending plaintext.');
-    return plaintext;
+    return undefined;
   }
 
   try {
@@ -88,7 +88,7 @@ export async function encryptContent(plaintext: string, secretKey: string, roomC
 
     return btoa(String.fromCharCode(...combined));
   } catch (err) {
-    return plaintext;
+    return undefined;
   }
 }
 

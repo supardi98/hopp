@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { X, ShieldCheck, RefreshCw, Key, Database, Sliders, Globe, RotateCcw, Copy, Check } from 'lucide-react';
+import { X, ShieldCheck, RefreshCw, Key, Database, Sliders, Globe, RotateCcw, Copy, Check, AlertTriangle } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
-import { generateSecretKey } from '../lib/crypto';
+import { generateSecretKey, isSubtleCryptoAvailable } from '../lib/crypto';
 import { getEffectiveRelayUrl } from '../lib/wsClient';
-
 import { writeSystemClipboard } from '../lib/nativeClipboard';
 
 export const SettingsModal: React.FC = () => {
@@ -65,6 +64,18 @@ export const SettingsModal: React.FC = () => {
                 className="w-4 h-4 accent-indigo-600 rounded cursor-pointer"
               />
             </div>
+
+            {!isSubtleCryptoAvailable() && (
+              <div className="p-3 rounded-xl bg-amber-950/70 border border-amber-500/40 text-amber-200 text-[11px] flex items-start space-x-2.5 leading-relaxed">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold block text-amber-300">Web Crypto E2EE Tidak Didukung pada HTTP LAN</span>
+                  <span>
+                    Browser mematikan modul enkripsi Web Crypto pada koneksi IP LAN (`http://192.168.18.x`). Buka via <strong>localhost</strong> atau <strong>HTTPS</strong> untuk mengaktifkan enkripsi AES-256-GCM.
+                  </span>
+                </div>
+              </div>
+            )}
 
             <p className="text-[11px] text-slate-400 leading-relaxed">
               Semua teks clipboard dienkripsi di peranti sebelum dikirim ke peranti lain. Peranti tanpa Secret Key yang sama tidak bisa membaca teks.
