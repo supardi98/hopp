@@ -33,7 +33,7 @@ export const PairingModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90">
       <div className="relative w-full max-w-lg glass-panel rounded-3xl p-6 border border-slate-700/80 shadow-2xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">

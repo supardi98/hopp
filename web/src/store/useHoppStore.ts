@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { ClipboardItem, ContentType, Device, E2EESettings, PlatformType } from '../types';
 import { generateSecretKey, encryptContent } from '../lib/crypto';
 import { syncService } from '../lib/broadcast';
-import { wsClient } from '../lib/wsClient';
+import { wsClient, getEffectiveRelayUrl } from '../lib/wsClient';
 import { writeSystemClipboard } from '../lib/nativeClipboard';
 import { savePayloadToDB, deletePayloadFromDB, clearAllPayloadsDB } from '../utils/storageDB';
 
@@ -151,8 +151,9 @@ export const useHoppStore = create<HoppState>()(
           // Purge expired unpinned items based on last connection session
           get().purgeExpiredItems();
 
-          // Connect real WebSocket client with Room Code
-          wsClient.connect('ws://localhost:8080', freshCurrentDevice, settings.roomCode);
+          // Connect real WebSocket client with dynamic Relay URL (Hybrid: Custom UI > .env > Local Host)
+          const targetUrl = getEffectiveRelayUrl(settings.customRelayUrl);
+          wsClient.connect(targetUrl, freshCurrentDevice, settings.roomCode);
 
           wsClient.onMessage((data) => {
             if (data.type === 'RECEIVE_CLIPBOARD_ITEM') {
@@ -178,9 +179,8 @@ export const useHoppStore = create<HoppState>()(
             }
           });
 
-          // Periodically check WS connection state & hydrate payloads
-          setInterval(() => {
-            const status = wsClient.getStatus();
+          // Event-driven WS connection status updates (0% timer overhead)
+          wsClient.onStatusChange((status) => {
             if (status) {
               set((state) => ({
                 isWsConnected: status,
@@ -189,7 +189,7 @@ export const useHoppStore = create<HoppState>()(
             } else {
               set({ isWsConnected: status });
             }
-          }, 2000);
+          });
         },
 
         purgeExpiredItems: () => {
@@ -407,7 +407,9 @@ export const useHoppStore = create<HoppState>()(
 
         updateSettings: (newSettings) => {
           const currentRoom = get().settings.roomCode;
+          const currentRelay = get().settings.customRelayUrl;
           const isRoomChanged = Boolean(newSettings.roomCode && newSettings.roomCode !== currentRoom);
+          const isRelayChanged = Boolean(newSettings.customRelayUrl !== undefined && newSettings.customRelayUrl !== currentRelay);
 
           set((state) => ({
             settings: { ...state.settings, ...newSettings },
@@ -415,8 +417,9 @@ export const useHoppStore = create<HoppState>()(
             items: isRoomChanged ? [] : state.items,
           }));
 
-          if (isRoomChanged && newSettings.roomCode) {
-            wsClient.connect('ws://localhost:8080', get().currentDevice, newSettings.roomCode);
+          if ((isRoomChanged || isRelayChanged) && get().settings.roomCode) {
+            const targetUrl = getEffectiveRelayUrl(get().settings.customRelayUrl);
+            wsClient.connect(targetUrl, get().currentDevice, get().settings.roomCode);
           }
         },
 

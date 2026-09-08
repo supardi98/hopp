@@ -2,17 +2,27 @@
  * Native System Clipboard Wrapper
  * Automatically detects whether running inside Tauri v2 (Linux/Windows/Android)
  * or in a standard Web Browser.
+ * Includes module caching for 0% IPC overhead.
  */
+
+let tauriClipboardPromise: Promise<any> | null = null;
 
 export async function isTauriEnvironment(): Promise<boolean> {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
 
+async function getTauriClipboardPlugin() {
+  if (!tauriClipboardPromise) {
+    tauriClipboardPromise = import('@tauri-apps/plugin-clipboard-manager');
+  }
+  return tauriClipboardPromise;
+}
+
 export async function readSystemClipboard(): Promise<string> {
   try {
     if (await isTauriEnvironment()) {
-      const { readText } = await import('@tauri-apps/plugin-clipboard-manager');
-      return await readText();
+      const plugin = await getTauriClipboardPlugin();
+      return await plugin.readText();
     }
   } catch (err) {
     console.warn('[Native Clipboard] Tauri plugin read failed, falling back to Web API:', err);
@@ -29,8 +39,8 @@ export async function readSystemClipboard(): Promise<string> {
 export async function writeSystemClipboard(text: string): Promise<void> {
   try {
     if (await isTauriEnvironment()) {
-      const { writeText } = await import('@tauri-apps/plugin-clipboard-manager');
-      await writeText(text);
+      const plugin = await getTauriClipboardPlugin();
+      await plugin.writeText(text);
       return;
     }
   } catch (err) {

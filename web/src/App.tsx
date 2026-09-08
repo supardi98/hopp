@@ -25,13 +25,17 @@ export function App() {
     }
   }, [initRealtimeSync, settings.isRoomSet, setOnboardingOpen]);
 
-  // Native OS Clipboard Listener Loop (Auto-detect Ctrl+C on Desktop)
+  // Native OS Clipboard Listener (Event-Driven: Focus, Visibility & Paste triggers for 0% CPU & zero typing lag)
   useEffect(() => {
-    let intervalId: any = null;
-
     const checkOSClipboard = async () => {
       // Only run auto-broadcast if enabled in settings
       if (settings.autoBroadcastClipboard === false) return;
+
+      // DO NOT check clipboard when user is actively typing in text input/textarea!
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+        return;
+      }
 
       try {
         const isTauri = await isTauriEnvironment();
@@ -52,21 +56,36 @@ export function App() {
         lastObservedClipboardRef.current = currentText;
         await addClipboardItem(currentText);
       } catch (err) {
-        // Silently ignore clipboard permission errors during polling
+        // Silently ignore clipboard permission errors
       }
     };
 
-    intervalId = setInterval(checkOSClipboard, 1500);
+    const handleFocus = () => checkOSClipboard();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkOSClipboard();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('paste', handleFocus);
+
+    // Initial check on mount
+    checkOSClipboard();
+
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('paste', handleFocus);
     };
   }, [addClipboardItem, items, settings.autoBroadcastClipboard]);
 
   return (
     <div className="min-h-screen bg-[#090d16] text-slate-100 selection:bg-indigo-500 selection:text-white pb-16">
-      {/* Background Decorative Gradients */}
-      <div className="fixed top-0 left-1/4 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[140px] pointer-events-none -z-10" />
-      <div className="fixed top-1/3 right-10 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[140px] pointer-events-none -z-10" />
+      {/* Background Decorative Gradients (GPU-Native Radial Gradients for 0% CPU blur overhead) */}
+      <div className="fixed top-0 left-1/4 w-[500px] h-[500px] bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12)_0%,transparent_70%)] pointer-events-none -z-10 transform-gpu" />
+      <div className="fixed top-1/3 right-10 w-[400px] h-[400px] bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.12)_0%,transparent_70%)] pointer-events-none -z-10 transform-gpu" />
 
       {/* Main Top Header */}
       <Header />
@@ -76,7 +95,7 @@ export function App() {
         <div className="glass-card rounded-2xl p-4 border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-slate-900/60 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
             <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
-              <ArrowRightLeft className="w-5 h-5 animate-pulse" />
+              <ArrowRightLeft className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center space-x-2">

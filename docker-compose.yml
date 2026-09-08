@@ -12,3 +12,14 @@ services:
     volumes:
       - ./server/data:/app/data
     restart: unless-stopped
+
+  hopp-web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: hopp-web
+    ports:
+      - "80:80"
+    depends_on:
+      - hopp-server
+    restart: unless-stopped

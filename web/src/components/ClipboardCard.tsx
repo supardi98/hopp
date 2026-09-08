@@ -176,7 +176,6 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
 
             <button
               onClick={() => togglePin(item.id)}
-              title={item.pinned ? 'Unpin item' : 'Pin item (Proteksi dari Auto-Hapus)'}
               className={`p-1.5 rounded-lg border transition-colors ${
                 item.pinned
                   ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30'
@@ -189,7 +188,6 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
             {(item.contentType === 'image' || item.contentType === 'file') && (
               <button
                 onClick={handleDownload}
-                title="Download file/gambar ke lokal"
                 className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium text-purple-300 bg-purple-950/80 hover:bg-purple-900 border-purple-700/50 transition-all"
               >
                 <Download className="w-3.5 h-3.5 text-purple-400" />
@@ -199,7 +197,6 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
 
             <button
               onClick={handleCopy}
-              title="Salin ke Clipboard"
               className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all ${
                 copied
                   ? 'text-emerald-300 bg-emerald-950/80 border-emerald-500/40 shadow-sm'
@@ -221,7 +218,6 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
 
             <button
               onClick={() => deleteItem(item.id)}
-              title="Hapus item"
               className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -249,7 +245,7 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
                 )}
                 <button
                   onClick={() => setPreviewOpen(true)}
-                  className="absolute bottom-2 right-2 p-1.5 bg-slate-900/80 text-purple-300 hover:text-white rounded-lg border border-purple-500/30 backdrop-blur-sm opacity-0 group-hover/img:opacity-100 transition-opacity"
+                  className="absolute bottom-2 right-2 p-1.5 bg-slate-900/90 text-purple-300 hover:text-white rounded-lg border border-purple-500/30 opacity-0 group-hover/img:opacity-100 transition-opacity"
                   title="Lihat ukuran penuh"
                 >
                   <Eye className="w-4 h-4" />
@@ -308,7 +304,7 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
 
       {/* Lightbox Image Preview Modal */}
       {previewOpen && filePayload && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 animate-fadeIn">
           <div className="relative max-w-4xl max-h-[90vh] bg-slate-900 border border-purple-500/30 rounded-2xl p-2 shadow-2xl flex flex-col items-center">
             <button
               onClick={() => setPreviewOpen(false)}

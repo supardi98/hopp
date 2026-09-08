@@ -130,7 +130,7 @@ export const DeviceList: React.FC = () => {
 
       {/* Device Detail Modal */}
       {selectedDevice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 animate-fadeIn">
           <div className="relative w-full max-w-md glass-panel rounded-3xl p-6 border border-indigo-500/30 shadow-2xl space-y-5">
             <button
               onClick={() => setSelectedDevice(null)}
@@ -163,7 +163,7 @@ export const DeviceList: React.FC = () => {
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
                 <span className="text-slate-400 font-medium">Status Koneksi:</span>
                 <span className="font-semibold text-emerald-400 flex items-center space-x-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
                   <span>Aktif (Online)</span>
                 </span>
               </div>

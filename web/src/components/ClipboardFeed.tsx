@@ -81,7 +81,6 @@ export const ClipboardFeed: React.FC = () => {
           {items.length > 0 && (
             <button
               onClick={() => setShowConfirmClear(true)}
-              title="Bersihkan Semua History"
               className="p-2 text-slate-500 hover:text-red-400 bg-slate-900 hover:bg-red-500/10 rounded-xl border border-slate-800 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -109,7 +108,7 @@ export const ClipboardFeed: React.FC = () => {
 
       {/* Clear All Confirmation Modal */}
       {showConfirmClear && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 animate-fadeIn">
           <div className="relative w-full max-w-md glass-panel rounded-3xl p-6 border border-red-500/30 shadow-2xl space-y-5">
             <button
               onClick={() => setShowConfirmClear(false)}

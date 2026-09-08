@@ -46,4 +46,5 @@ export interface E2EESettings {
   lanSyncOnly: boolean;
   retentionHours?: number;
   lastConnectedTimestamp?: number;
+  customRelayUrl?: string;
 }

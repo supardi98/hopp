@@ -30,7 +30,7 @@ Dokumen ini berisi panduan teknis, arsitektur monorepo, dan standar pengkodean u
 
 ---
 
-## ⚙️ Aturan Bisnis & Perilaku Kunci
+## ⚙️ Aturan Bisnis, Performa & Perilaku Kunci
 
 1. **Zero-Login Multi-Room Isolation**:
    - Perangkat diisolasi berdasarkan Kode Room (`HOPP-XXXX`).
@@ -45,6 +45,18 @@ Dokumen ini berisi panduan teknis, arsitektur monorepo, dan standar pengkodean u
    - Item unpinned terhapus otomatis setelah 24 jam tidak aktif dihitung dari koneksi terakhir (`lastConnectedTimestamp`).
    - Item yang di-pin (`pinned: true`) **100% terproteksi** dari auto-hapus.
 
+4. **⚡ Arsitektur Performa Event-Driven (0% CPU Idle)**:
+   - **Dilarang keras menggunakan `setInterval`** untuk memuat/memeriksa clipboard OS atau status koneksi.
+   - Gunakan event listener pasif (`window.onfocus`, `document.onvisibilitychange`, `window.onpaste`) untuk membaca clipboard.
+   - Gunakan event listener `wsClient.onStatusChange` untuk status WebSocket tanpa mutasi state berulang.
+
+5. **🐧 Aturan Rendering WebKitGTK (Linux NVIDIA Fix & 0 Glitch)**:
+   - **Tanpa Atribut `title="..."`**: Dilarang menggunakan atribut native HTML `title="..."` pada tombol/elemen UI karena memicu `GtkTooltipWindow` native Linux GTK yang glitchy (kotak oranye fallback).
+   - **Tanpa `animate-pulse` / `animate-ping` / `shadow-lg` pada SVG Icon**: Efek ini memicu kesalahan rasterisasi SVG Cairo di WebKitGTK.
+   - **Tanpa `backdrop-filter: blur(...)` / `blur-[140px]`**: Gunakan warna background solid/high-opacity (`rgba(15, 23, 42, 0.95)`) dan GPU-native `radial-gradient`.
+   - **Environment Variable WebKitGTK**: Selalu pertahankan `WEBKIT_DISABLE_DMABUF_RENDERER=1` di `desktop/src/main.rs` sebelum GTK dimuat untuk mencegah Mesa EGL DRI2 fallback loop pada driver NVIDIA (`10de:1f08`).
+   - **Window Background Color**: Selalu tetapkan `"backgroundColor": "#090d16"` di `desktop/tauri.conf.json`.
+
 ---
 
 ## 🛠️ Perintah Pengembangan Utama
@@ -58,6 +70,9 @@ npm run dev
 
 # Menjalankan Tauri Desktop App (Dev)
 npm run desktop
+
+# Membersihkan cache kompilasi Rust target (menghemat 4+ GB storage)
+npm run clean
 
 # Menguji build produksi frontend
 npm run build

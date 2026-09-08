@@ -2,21 +2,70 @@ import type { ClipboardItem, Device } from '../types';
 
 type MessageHandler = (data: any) => void;
 
+export const getEffectiveRelayUrl = (customUrl?: string): string => {
+  if (customUrl && customUrl.trim()) {
+    return customUrl.trim();
+  }
+  const envUrl = (import.meta as any).env?.VITE_HOPP_RELAY_URL;
+  if (envUrl && envUrl.trim()) {
+    return envUrl.trim();
+  }
+  const host = typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : 'localhost';
+  return `ws://${host}:8080`;
+};
+
 class RealtimeWSClient {
   private ws: WebSocket | null = null;
   private serverUrl: string = 'ws://localhost:8080';
   private handlers: MessageHandler[] = [];
   private isConnected: boolean = false;
   private reconnectTimer: any = null;
+  private statusListeners: ((connected: boolean) => void)[] = [];
 
-  public connect(url: string = 'ws://localhost:8080', currentDevice?: Device, roomCode?: string) {
-    this.serverUrl = url;
+  public disconnect() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+    this.notifyStatus(false);
+  }
+
+  public onStatusChange(listener: (connected: boolean) => void) {
+    this.statusListeners.push(listener);
+    listener(this.isConnected);
+    return () => {
+      this.statusListeners = this.statusListeners.filter((l) => l !== listener);
+    };
+  }
+
+  private notifyStatus(status: boolean) {
+    if (this.isConnected !== status) {
+      this.isConnected = status;
+      this.statusListeners.forEach((l) => l(status));
+    }
+  }
+
+  public connect(url?: string, currentDevice?: Device, roomCode?: string) {
+    const targetUrl = url || getEffectiveRelayUrl();
+    if (this.ws && this.serverUrl === targetUrl && this.isConnected) {
+      return;
+    }
+
+    if (this.ws) {
+      this.ws.close();
+    }
+
+    this.serverUrl = targetUrl;
 
     try {
       this.ws = new WebSocket(this.serverUrl);
 
       this.ws.onopen = () => {
-        this.isConnected = true;
+        this.notifyStatus(true);
         console.log(`[Hopp WS] Connected to real sync server at ${this.serverUrl}`);
 
         if (currentDevice) {
@@ -38,7 +87,7 @@ class RealtimeWSClient {
       };
 
       this.ws.onclose = () => {
-        this.isConnected = false;
+        this.notifyStatus(false);
         console.warn('[Hopp WS] Disconnected. Reconnecting in 3s...');
         this.scheduleReconnect(currentDevice, roomCode);
       };

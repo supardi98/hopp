@@ -118,7 +118,6 @@ export const ClipboardInput: React.FC = () => {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-purple-300 bg-purple-950/80 hover:bg-purple-900 border border-purple-700/50 rounded-lg transition-all"
-              title="Kirim Gambar / File (< 10MB)"
             >
               <Paperclip className="w-3.5 h-3.5 text-purple-400" />
               <span className="hidden sm:inline">Upload File/Gambar</span>
@@ -129,7 +128,6 @@ export const ClipboardInput: React.FC = () => {
               onClick={handleReadSystemClipboard}
               disabled={isReadingClipboard}
               className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-indigo-300 bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-700/50 rounded-lg transition-all"
-              title="Baca Clipboard OS secara langsung"
             >
               <ClipboardCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>{isReadingClipboard ? 'Membaca...' : 'Clipboard OS'}</span>

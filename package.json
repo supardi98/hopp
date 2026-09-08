@@ -7,7 +7,8 @@
     "dev": "npm run dev --prefix web",
     "build": "npm run build --prefix web",
     "server": "node server/index.js",
-    "desktop": "tauri dev --config desktop/tauri.conf.json",
+    "desktop": "WEBKIT_DISABLE_DMABUF_RENDERER=1 MESA_LOG_LEVEL=error EGL_LOG_LEVEL=fatal tauri dev --config desktop/tauri.conf.json",
+    "clean": "cargo clean --manifest-path desktop/Cargo.toml && rm -rf web/dist",
     "test:sync": "node scripts/test-sync.js",
     "lint": "oxlint web"
   },

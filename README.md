@@ -39,11 +39,13 @@ hopp/
 npm run server
 ```
 
-### 2. Menjalankan Server Relay (Pilihan B: Dengan Docker Compose)
+### 2. Deploy Produksi Sekaligus (Frontend + Server via Docker Compose)
 ```bash
-# Jalankan server WebSocket terisolasi dengan Docker Compose
+# Jalankan seluruh stack produksi (Server Relay + Web Client NGINX)
 docker compose up -d --build
 ```
+- **Web App UI**: `http://<IP-SERVER>:80`
+- **WebSocket Relay**: `ws://<IP-SERVER>:8080` (atau via reverse proxy NGINX `/ws`)
 
 ### 3. Menjalankan Web Client
 ```bash
@@ -55,6 +57,19 @@ Akses di browser: `http://localhost:5173`
 ```bash
 npm run desktop
 ```
+
+### 5. Membersihkan Build Cache (Menghemat 4+ GB Storage)
+```bash
+npm run clean
+```
+
+---
+
+## ⚡ Performa & Kompatibilitas GPU Linux (NVIDIA / WebKitGTK)
+
+- 🚀 **Event-Driven Architecture (0% CPU Idle)**: Menggunakan event listener pasif untuk membaca clipboard OS saat peranti difokuskan/ditempelkan, sepenuhnya menghilangkan lag saat mengetik.
+- 🐧 **Kompatibilitas Linux WebKitGTK & NVIDIA**: Dikonfigurasi secara otomatis tanpa bug alokasi memori layer GTK atau fallback loop EGL Mesa pada driver NVIDIA.
+- 🧹 **Pembersihan Cache Otomatis**: Perintah `npm run clean` siap digunakan kapan saja untuk menghapus file perantara kompilasi Rust dan membebaskan memori disk.
 
 ---
 

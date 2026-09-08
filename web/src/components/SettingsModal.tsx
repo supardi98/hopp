@@ -1,7 +1,8 @@
 import React from 'react';
-import { X, ShieldCheck, RefreshCw, Key, Database, Sliders } from 'lucide-react';
+import { X, ShieldCheck, RefreshCw, Key, Database, Sliders, Globe, RotateCcw } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 import { generateSecretKey } from '../lib/crypto';
+import { getEffectiveRelayUrl } from '../lib/wsClient';
 
 export const SettingsModal: React.FC = () => {
   const { isSettingsModalOpen, setSettingsModalOpen, settings, updateSettings, showToast } = useHoppStore();
@@ -15,7 +16,7 @@ export const SettingsModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90">
       <div className="relative w-full max-w-lg glass-panel rounded-3xl p-6 border border-slate-700/80 shadow-2xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
@@ -74,6 +75,45 @@ export const SettingsModal: React.FC = () => {
                 <Key className="w-3.5 h-3.5 text-slate-500 mr-2" />
                 <span className="truncate flex-1">{settings.secretKey}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Server Sync / Relay URL (Hybrid Configuration: Custom UI > .env > Local Auto-Detect) */}
+          <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Globe className="w-4 h-4 text-cyan-400" />
+                <span className="text-xs font-bold text-slate-200">Alamat Relay / Server Sync</span>
+              </div>
+              {settings.customRelayUrl && (
+                <button
+                  type="button"
+                  onClick={() => updateSettings({ customRelayUrl: '' })}
+                  className="text-[11px] text-indigo-400 hover:underline flex items-center space-x-1"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset Default</span>
+                </button>
+              )}
+            </div>
+
+            <p className="text-[11px] text-slate-400">
+              Pengaturan dinamis server sync. Kosongkan untuk menggunakan Server Default (.env / Auto-Detect Wi-Fi).
+            </p>
+
+            <div className="relative">
+              <input
+                type="text"
+                value={settings.customRelayUrl || ''}
+                onChange={(e) => updateSettings({ customRelayUrl: e.target.value })}
+                placeholder={getEffectiveRelayUrl()}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-cyan-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500/60"
+              />
+            </div>
+
+            <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between pt-1">
+              <span>Status Aktif:</span>
+              <span className="text-emerald-400 font-bold">{getEffectiveRelayUrl(settings.customRelayUrl)}</span>
             </div>
           </div>
 
