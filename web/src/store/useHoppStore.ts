@@ -10,6 +10,13 @@ import { savePayloadToDB, deletePayloadFromDB, clearAllPayloadsDB } from '../uti
 // Unique Tab Instance ID per browser window/tab
 const TAB_INSTANCE_ID = `tab-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
 
+// Tab Leader Election via BroadcastChannel — WhatsApp Web style:
+// New tab broadcasts TAKE_OVER → old tabs disconnect and show reconnect banner
+let _isLeaderTab = false;
+const _leaderChannel = typeof BroadcastChannel !== 'undefined'
+  ? new BroadcastChannel('hopp_leader')
+  : null;
+
 interface HoppState {
   currentDevice: Device;
   pairedDevices: Device[];
@@ -19,10 +26,10 @@ interface HoppState {
   searchQuery: string;
   isPairingModalOpen: boolean;
   isSettingsModalOpen: boolean;
-  isGuideModalOpen: boolean;
   isOnboardingOpen: boolean;
   activeToast: string | null;
   isWsConnected: boolean;
+  isOtherTabActive: boolean;
 
   // Actions
   initRealtimeSync: () => void;
@@ -39,9 +46,10 @@ interface HoppState {
   updateSettings: (newSettings: Partial<E2EESettings>) => void;
   setPairingModalOpen: (open: boolean) => void;
   setSettingsModalOpen: (open: boolean) => void;
-  setGuideModalOpen: (open: boolean) => void;
   setOnboardingOpen: (open: boolean) => void;
   showToast: (msg: string) => void;
+  leaveRoom: () => void;
+  reconnectAsLeader: () => void;
   pairNewDevice: (device: Omit<Device, 'id'>) => void;
   removeDevice: (deviceId: string) => void;
   simulateSimultaneousPaste: () => void;
@@ -117,9 +125,9 @@ export const useHoppStore = create<HoppState>()(
         },
         activeTab: 'all',
         searchQuery: '',
+        isOtherTabActive: false,
         isPairingModalOpen: false,
         isSettingsModalOpen: false,
-        isGuideModalOpen: false,
         isOnboardingOpen: false,
         activeToast: null,
         isWsConnected: false,
@@ -146,7 +154,6 @@ export const useHoppStore = create<HoppState>()(
           };
 
           set({ currentDevice: freshCurrentDevice });
-          const { settings } = get();
 
           // Purge expired unpinned items based on last connection session
           get().purgeExpiredItems();
@@ -188,9 +195,31 @@ export const useHoppStore = create<HoppState>()(
             }
           });
 
-          // 2. Connect real WebSocket client with dynamic Relay URL
-          const targetUrl = getEffectiveRelayUrl(settings.customRelayUrl);
-          wsClient.connect(targetUrl, freshCurrentDevice, settings.roomCode);
+          // 2. WhatsApp-style Tab Takeover via BroadcastChannel
+          const doConnect = () => {
+            const s = get().settings;
+            wsClient.connect(getEffectiveRelayUrl(s.customRelayUrl), get().currentDevice, s.roomCode);
+          };
+
+          if (_leaderChannel) {
+            // Listen for other tabs claiming leadership
+            _leaderChannel.onmessage = (e) => {
+              if (e.data.type === 'TAKE_OVER' && e.data.tabId !== TAB_INSTANCE_ID) {
+                if (_isLeaderTab) {
+                  _isLeaderTab = false;
+                  wsClient.disconnect();
+                  set({ isWsConnected: false, isOtherTabActive: true });
+                }
+              }
+            };
+
+            // Broadcast takeover to kick other tabs
+            _leaderChannel.postMessage({ type: 'TAKE_OVER', tabId: TAB_INSTANCE_ID });
+          }
+
+          _isLeaderTab = true;
+          set({ isOtherTabActive: false });
+          doConnect();
 
           // Event-driven WS connection status updates (0% timer overhead)
           wsClient.onStatusChange((status) => {
@@ -246,6 +275,20 @@ export const useHoppStore = create<HoppState>()(
             : currentDevice;
 
           const contentType = detectContentType(content);
+
+          // Deduplicate: if same content already exists, bump timestamp and move to top
+          const existing = items.find(
+            (i) => i.content.trim() === content.trim() && i.contentType === contentType
+          );
+          if (existing) {
+            const bumped = { ...existing, timestamp: Date.now() };
+            const rest = items.filter((i) => i.id !== existing.id);
+            set({ items: limitItemsWithPinnedProtection([bumped, ...rest], settings.maxItems) });
+            wsClient.broadcastClipboardItem(bumped, settings.roomCode);
+            get().showToast('Konten sama dipindahkan ke atas');
+            return;
+          }
+
           const encrypted = settings.enabled
             ? await encryptContent(content, settings.secretKey, settings.roomCode)
             : undefined;
@@ -347,7 +390,20 @@ export const useHoppStore = create<HoppState>()(
           // Ignore items from different room code if specified
           if (newItem.roomCode && newItem.roomCode !== settings.roomCode) return;
 
-          // Check if already exists in store
+          // Deduplicate by content: bump timestamp and move to top if same content exists
+          const existing = items.find(
+            (i) =>
+              i.contentType === newItem.contentType &&
+              i.content.trim() === newItem.content.trim()
+          );
+          if (existing) {
+            const bumped = { ...existing, timestamp: newItem.timestamp };
+            const rest = items.filter((i) => i.id !== existing.id);
+            set({ items: limitItemsWithPinnedProtection([bumped, ...rest], settings.maxItems) });
+            return;
+          }
+
+          // Check if already exists by ID
           if (items.some((i) => i.id === newItem.id)) return;
 
           // If item is image or file, persist to IndexedDB
@@ -430,7 +486,8 @@ export const useHoppStore = create<HoppState>()(
             items: isRoomChanged ? [] : state.items,
           }));
 
-          if ((isRoomChanged || isRelayChanged) && get().settings.roomCode) {
+          // Only reconnect if this tab is the current WS leader
+          if ((isRoomChanged || isRelayChanged) && get().settings.roomCode && _isLeaderTab) {
             const targetUrl = getEffectiveRelayUrl(get().settings.customRelayUrl);
             wsClient.connect(targetUrl, get().currentDevice, get().settings.roomCode);
           }
@@ -438,7 +495,6 @@ export const useHoppStore = create<HoppState>()(
 
         setPairingModalOpen: (open) => set({ isPairingModalOpen: open }),
         setSettingsModalOpen: (open) => set({ isSettingsModalOpen: open }),
-        setGuideModalOpen: (open) => set({ isGuideModalOpen: open }),
         setOnboardingOpen: (open) => set({ isOnboardingOpen: open }),
 
         showToast: (msg) => {
@@ -460,6 +516,36 @@ export const useHoppStore = create<HoppState>()(
             isPairingModalOpen: false,
           }));
           get().showToast(`Peranti '${newDev.name}' terhubung!`);
+        },
+
+        leaveRoom: () => {
+          const { currentDevice } = get();
+          // Disconnect WS and cancel reconnect
+          wsClient.disconnect();
+          // Clear all IndexedDB payloads
+          clearAllPayloadsDB();
+          set((state) => ({
+            items: [],
+            pairedDevices: [{ ...currentDevice }],
+            isWsConnected: false,
+            settings: {
+              ...state.settings,
+              roomCode: '',
+              isRoomSet: false,
+            },
+          }));
+          get().showToast('Keluar dari room berhasil');
+        },
+
+        reconnectAsLeader: () => {
+          // Kick any other tab that's currently the leader
+          if (_leaderChannel) {
+            _leaderChannel.postMessage({ type: 'TAKE_OVER', tabId: TAB_INSTANCE_ID });
+          }
+          _isLeaderTab = true;
+          set({ isOtherTabActive: false });
+          const s = get().settings;
+          wsClient.connect(getEffectiveRelayUrl(s.customRelayUrl), get().currentDevice, s.roomCode);
         },
 
         removeDevice: (deviceId) => {

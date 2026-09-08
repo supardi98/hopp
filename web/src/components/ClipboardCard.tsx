@@ -32,6 +32,7 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
   const [copied, setCopied] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [filePayload, setFilePayload] = useState<string | null>(item.fileUrl || item.content || null);
+  const [confirm, setConfirm] = useState<null | 'delete' | 'unpin'>(null);
   const { togglePin, deleteItem, showToast } = useHoppStore();
 
   useEffect(() => {
@@ -175,7 +176,13 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
             </span>
 
             <button
-              onClick={() => togglePin(item.id)}
+              onClick={() => {
+                if (item.pinned) {
+                  setConfirm('unpin');
+                } else {
+                  togglePin(item.id);
+                }
+              }}
               className={`p-1.5 rounded-lg border transition-colors ${
                 item.pinned
                   ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30'
@@ -217,7 +224,13 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
             </button>
 
             <button
-              onClick={() => deleteItem(item.id)}
+              onClick={() => {
+                if (item.pinned) {
+                  setConfirm('delete');
+                } else {
+                  deleteItem(item.id);
+                }
+              }}
               className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -300,6 +313,45 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
             </p>
           )}
         </div>
+
+        {/* Inline Confirmation Panel */}
+        {confirm && (
+          <div className={`mt-3 p-3 rounded-xl border flex items-center justify-between gap-3 ${
+            confirm === 'delete'
+              ? 'bg-red-950/40 border-red-500/40'
+              : 'bg-orange-950/40 border-orange-500/40'
+          }`}>
+            <p className={`text-xs font-medium ${
+              confirm === 'delete' ? 'text-red-300' : 'text-orange-300'
+            }`}>
+              {confirm === 'delete'
+                ? 'Hapus item yang di-pin?'
+                : 'Lepas pin dari item ini?'}
+            </p>
+            <div className="flex items-center space-x-2 shrink-0">
+              <button
+                onClick={() => setConfirm(null)}
+                className="px-3 py-1 text-xs font-semibold text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-700 transition-all"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm === 'delete') deleteItem(item.id);
+                  else togglePin(item.id);
+                  setConfirm(null);
+                }}
+                className={`px-3 py-1 text-xs font-bold text-white rounded-lg border transition-all ${
+                  confirm === 'delete'
+                    ? 'bg-red-600 hover:bg-red-500 border-red-500'
+                    : 'bg-orange-600 hover:bg-orange-500 border-orange-500'
+                }`}
+              >
+                {confirm === 'delete' ? 'Ya, Hapus' : 'Ya, Unpin'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Lightbox Image Preview Modal */}

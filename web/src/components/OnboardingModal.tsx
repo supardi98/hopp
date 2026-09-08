@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, ArrowRight, KeyRound, Sparkles, X, Copy, Check } from 'lucide-react';
+import { Plus, ArrowRight, KeyRound, Sparkles, X, Copy, Check, LogOut } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 import { generateRoomCode } from '../lib/crypto';
 import { writeSystemClipboard } from '../lib/nativeClipboard';
@@ -10,10 +10,11 @@ interface OnboardingModalProps {
 }
 
 export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) => {
-  const { settings, updateSettings, showToast, initRealtimeSync } = useHoppStore();
+  const { settings, updateSettings, showToast, initRealtimeSync, leaveRoom } = useHoppStore();
   const [mode, setMode] = useState<'choose' | 'join'>('choose');
   const [inputCode, setInputCode] = useState('');
   const [copied, setCopied] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
 
   if (!isOpen) return null;
 
@@ -156,14 +157,56 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
               </div>
             </button>
 
-            {/* Cancel Button if user already has a room */}
+            {/* Cancel + Leave Room — only when already in a room */}
             {settings.isRoomSet && (
-              <button
-                onClick={onClose}
-                className="w-full py-2.5 px-4 text-xs font-semibold text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-2xl border border-slate-800 transition-all text-center"
-              >
-                Batal / Tetap di Room {settings.roomCode}
-              </button>
+              <>
+                {!confirmLeave ? (
+                  <>
+                    <button
+                      onClick={onClose}
+                      className="w-full py-2.5 px-4 text-xs font-semibold text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-2xl border border-slate-800 transition-all text-center"
+                    >
+                      Batal / Tetap di Room {settings.roomCode}
+                    </button>
+                    <button
+                      onClick={() => setConfirmLeave(true)}
+                      className="w-full py-2.5 px-4 text-xs font-semibold text-red-400 hover:text-white hover:bg-red-600/20 bg-transparent rounded-2xl border border-red-500/30 hover:border-red-500/60 transition-all text-center flex items-center justify-center space-x-2"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Keluar dari Room {settings.roomCode}</span>
+                    </button>
+                  </>
+                ) : (
+                  /* Inline Confirmation Panel */
+                  <div className="p-4 rounded-2xl bg-red-950/40 border border-red-500/40 space-y-3">
+                    <p className="text-xs font-semibold text-red-300 text-center">
+                      Yakin ingin keluar dari Room <span className="font-mono text-red-200">{settings.roomCode}</span>?
+                    </p>
+                    <p className="text-[11px] text-slate-400 text-center leading-relaxed">
+                      Semua item lokal akan dihapus dan koneksi WS diputus.
+                    </p>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setConfirmLeave(false)}
+                        className="w-1/2 py-2 text-xs font-semibold text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-xl border border-slate-800 transition-all"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        onClick={() => {
+                          leaveRoom();
+                          setConfirmLeave(false);
+                          onClose();
+                        }}
+                        className="w-1/2 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-500 rounded-xl border border-red-500 transition-all flex items-center justify-center space-x-1.5"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>Ya, Keluar</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         ) : (

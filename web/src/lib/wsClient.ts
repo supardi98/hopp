@@ -46,6 +46,7 @@ class RealtimeWSClient {
   private statusListeners: ((connected: boolean) => void)[] = [];
   private logs: WSLogEntry[] = [];
   private logListeners: ((logs: WSLogEntry[]) => void)[] = [];
+  private _manualDisconnect: boolean = false; // Prevents auto-reconnect after intentional disconnect
 
   public addLog(type: WSLogEntry['type'], message: string, details?: string) {
     const entry: WSLogEntry = {
@@ -78,6 +79,7 @@ class RealtimeWSClient {
   }
 
   public disconnect() {
+    this._manualDisconnect = true; // Block auto-reconnect from onclose
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -106,6 +108,7 @@ class RealtimeWSClient {
   }
 
   public connect(url?: string, currentDevice?: Device, roomCode?: string) {
+    this._manualDisconnect = false; // Allow reconnects again
     const targetUrl = url || getEffectiveRelayUrl();
     this.addLog('info', `Mencoba koneksi ke ${targetUrl}`, `Room Code: '${roomCode || 'Belum Set'}'`);
 
@@ -149,6 +152,11 @@ class RealtimeWSClient {
 
       this.ws.onclose = (ev) => {
         this.notifyStatus(false);
+        if (this._manualDisconnect) {
+          // Intentional disconnect by leader election — do NOT auto-reconnect
+          this.addLog('info', 'Koneksi diputus (mode non-aktif tab). Tidak akan reconnect otomatis.');
+          return;
+        }
         this.addLog('warn', `WebSocket Terputus (code ${ev.code}). Reconnect dalam 3s...`, ev.reason || 'Koneksi ditutup oleh server/jaringan');
         this.scheduleReconnect(currentDevice, roomCode);
       };

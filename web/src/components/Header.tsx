@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import { ShieldCheck, Wifi, Laptop, Smartphone, Plus, Settings, HelpCircle, KeyRound, Copy, Check } from 'lucide-react';
+import React from 'react';
+import { ShieldCheck, Wifi, Laptop, Smartphone, Plus, Settings, KeyRound } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
-import { writeSystemClipboard } from '../lib/nativeClipboard';
 
 export const Header: React.FC = () => {
   const {
@@ -9,27 +8,11 @@ export const Header: React.FC = () => {
     settings,
     setPairingModalOpen,
     setSettingsModalOpen,
-    setGuideModalOpen,
     setOnboardingOpen,
     activeToast,
-    showToast,
   } = useHoppStore();
 
-  const [copiedRoom, setCopiedRoom] = useState(false);
   const onlineCount = pairedDevices.filter((d) => d.status === 'online').length;
-
-  const handleCopyRoomCode = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const room = settings.roomCode;
-    if (!room) {
-      showToast('Belum ada Kode Room');
-      return;
-    }
-    writeSystemClipboard(room);
-    setCopiedRoom(true);
-    showToast(`Kode Room '${room}' berhasil disalin ke clipboard!`);
-    setTimeout(() => setCopiedRoom(false), 2000);
-  };
 
   return (
     <header className="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-3 sm:px-6 py-2.5 sm:py-3.5 transition-all">
@@ -76,13 +59,6 @@ export const Header: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setGuideModalOpen(true)}
-              className="p-1.5 text-slate-400 hover:text-slate-200 bg-slate-800/60 rounded-lg border border-slate-700/50"
-            >
-              <HelpCircle className="w-4 h-4" />
-            </button>
-
-            <button
               onClick={() => setSettingsModalOpen(true)}
               className="p-1.5 text-slate-400 hover:text-slate-200 bg-slate-800/60 rounded-lg border border-slate-700/50"
             >
@@ -96,20 +72,10 @@ export const Header: React.FC = () => {
           {/* Room Code Badge */}
           <div
             onClick={() => setOnboardingOpen(true)}
-            className="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-mono font-bold cursor-pointer transition-all group shrink-0 text-xs"
+            className="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-mono font-bold cursor-pointer transition-all shrink-0 text-xs"
           >
             <KeyRound className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
             <span>Room: {settings.roomCode || 'Belum Set'}</span>
-            <button
-              onClick={handleCopyRoomCode}
-              className="p-0.5 hover:bg-indigo-500/30 text-indigo-300 hover:text-white rounded transition-colors ml-0.5"
-            >
-              {copiedRoom ? (
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-              ) : (
-                <Copy className="w-3.5 h-3.5 text-indigo-400 group-hover:scale-110 transition-transform" />
-              )}
-            </button>
           </div>
 
           {/* LAN P2P Status */}
@@ -142,13 +108,6 @@ export const Header: React.FC = () => {
           >
             <Plus className="w-4 h-4" />
             <span>Hubungkan Peranti</span>
-          </button>
-
-          <button
-            onClick={() => setGuideModalOpen(true)}
-            className="p-2 text-slate-400 hover:text-slate-200 bg-slate-800/60 hover:bg-slate-800 rounded-lg border border-slate-700/50 transition-colors"
-          >
-            <HelpCircle className="w-4 h-4" />
           </button>
 
           <button

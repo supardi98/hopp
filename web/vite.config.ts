@@ -18,16 +18,13 @@ function nodeServerPlugin() {
 
         const cleanup = () => {
           if (serverProcess) {
-            try {
-              serverProcess.kill();
-            } catch (e) {}
+            try { serverProcess.kill(); } catch (e) {}
             serverProcess = null;
           }
         };
 
+        // 'exit' covers all normal exits (including Ctrl+C after Vite handles SIGINT)
         process.on('exit', cleanup);
-        process.on('SIGINT', cleanup);
-        process.on('SIGTERM', cleanup);
       }
     },
   };
@@ -51,14 +48,15 @@ export default defineConfig({
         xfwd: true, // Pass X-Forwarded-For header containing client IP
         rewrite: (path) => path.replace(/^\/ws/, ''),
         configure: (proxy) => {
-          proxy.on('error', (err, _req, _res) => {
+          proxy.on('error', (err: Error, _req, _res) => {
             // Suppress expected connection errors:
             // - ECONNREFUSED: server not ready yet on startup
             // - ECONNRESET: client (e.g. Safari/mobile) closed connection abruptly without WS close frame
             if (err.message.includes('ECONNREFUSED') || err.message.includes('ECONNRESET')) return;
             console.error('[ws proxy error]', err.message);
           });
-          proxy.on('proxyReqWsError', (err) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (proxy as any).on('proxyReqWsError', (err: Error) => {
             if (err.message.includes('ECONNRESET')) return;
             console.error('[ws proxy req error]', err.message);
           });
