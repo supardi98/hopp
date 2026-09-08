@@ -1,12 +1,11 @@
 import React from 'react';
-import { ShieldCheck, Plus, Settings, KeyRound, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Settings, KeyRound, RefreshCw } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 
 export const Header: React.FC = () => {
   const {
     pairedDevices,
     settings,
-    setPairingModalOpen,
     setSettingsModalOpen,
     setOnboardingOpen,
     setDeviceListOpen,
@@ -46,11 +45,11 @@ export const Header: React.FC = () => {
           {/* Mobile Action Buttons */}
           <div className="flex items-center space-x-1.5 sm:space-x-2 md:hidden">
             <button
-              onClick={() => setPairingModalOpen(true)}
-              className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg border border-indigo-400/30"
+              onClick={() => setOnboardingOpen(true)}
+              className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl border border-indigo-400/30 shadow-md shadow-indigo-600/30"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="text-[11px]">Hubungkan</span>
+              <KeyRound className="w-3.5 h-3.5 text-indigo-200 shrink-0" />
+              <span className="font-mono text-xs">{settings.roomCode || 'Room'}</span>
             </button>
             <button
               onClick={() => setSettingsModalOpen(true)}
@@ -63,15 +62,6 @@ export const Header: React.FC = () => {
 
         {/* Live Badges */}
         <div className="flex items-center space-x-2 overflow-x-auto pb-0.5 pt-1 md:pt-0 no-scrollbar text-xs">
-          {/* Room Code */}
-          <div
-            onClick={() => setOnboardingOpen(true)}
-            className="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-mono font-bold cursor-pointer transition-all shrink-0 text-xs"
-          >
-            <KeyRound className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-            <span>Room: {settings.roomCode || 'Belum Set'}</span>
-          </div>
-
           {/* E2EE — opens E2EEModal */}
           <button
             onClick={() => setE2EEModalOpen(true)}
@@ -94,11 +84,11 @@ export const Header: React.FC = () => {
         {/* Desktop Action Buttons */}
         <div className="hidden md:flex items-center space-x-2">
           <button
-            onClick={() => setPairingModalOpen(true)}
-            className="flex items-center space-x-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-lg border border-indigo-400/30 transition-all hover:scale-[1.02]"
+            onClick={() => setOnboardingOpen(true)}
+            className="flex items-center space-x-2 px-3.5 py-1.5 text-xs font-extrabold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl border border-indigo-400/30 transition-all hover:scale-[1.02] shadow-md shadow-indigo-600/30"
           >
-            <Plus className="w-4 h-4" />
-            <span>Hubungkan Device</span>
+            <KeyRound className="w-4 h-4 text-indigo-200 shrink-0" />
+            <span>Room: {settings.roomCode || 'Belum Set'}</span>
           </button>
           <button
             onClick={() => setSettingsModalOpen(true)}

@@ -538,11 +538,14 @@ export const useHoppStore = create<HoppState>()(
           set({ items: limitItemsWithPinnedProtection([processedItem, ...items], settings.maxItems) });
 
           // If auto-sync is enabled, automatically write incoming text to local OS system clipboard!
+          // Guard: Skip if document is not focused — browser blocks clipboard write in background tab
+          // (item is still added to the store/UI, user can copy manually when they return)
           if (
             settings.autoSync &&
             processedItem.contentType !== 'image' &&
             processedItem.contentType !== 'file' &&
-            !processedItem.content.includes('[Encrypted content')
+            !processedItem.content.includes('[Encrypted content') &&
+            document.hasFocus()
           ) {
             try {
               await writeSystemClipboard(processedItem.content);
