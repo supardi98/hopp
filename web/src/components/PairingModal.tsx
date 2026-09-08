@@ -1,21 +1,54 @@
 import React, { useState, useEffect } from 'react';
-import { X, QrCode, Check, Copy, Link2, KeyRound, ShieldCheck } from 'lucide-react';
+import { X, QrCode, Check, Copy, Link2, KeyRound, ShieldCheck, Globe } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useHoppStore } from '../store/useHoppStore';
 import { writeSystemClipboard } from '../lib/nativeClipboard';
+import { detectLocalLanIp } from '../utils/detectLanIp';
 
 export const PairingModal: React.FC = () => {
-  const { isPairingModalOpen, setPairingModalOpen, settings, showToast } = useHoppStore();
+  const { isPairingModalOpen, setPairingModalOpen, settings, currentDevice, showToast } = useHoppStore();
   const [copiedRoom, setCopiedRoom] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [detectedHost, setDetectedHost] = useState<string>('');
+  const [hostOverride, setHostOverride] = useState<string>('');
+
+  useEffect(() => {
+    if (isPairingModalOpen) {
+      detectLocalLanIp().then((ip) => {
+        if (ip) {
+          setDetectedHost(ip);
+        }
+      });
+    }
+  }, [isPairingModalOpen]);
+
+  const getEffectiveHost = (): string => {
+    if (hostOverride.trim()) {
+      return hostOverride.trim();
+    }
+    const currentHostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
+      if (detectedHost) return detectedHost;
+      if (currentDevice?.ipAddress) {
+        const cleanIp = currentDevice.ipAddress.trim().replace(/^::ffff:/i, '');
+        if (cleanIp && cleanIp !== '127.0.0.1' && cleanIp !== 'Mendeteksi...') {
+          return cleanIp;
+        }
+      }
+    }
+    return currentHostname;
+  };
 
   const getPairingUrl = () => {
-    const origin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'http://localhost:4080';
+    const protocol = typeof window !== 'undefined' && window.location.protocol ? window.location.protocol : 'http:';
+    const port = typeof window !== 'undefined' && window.location.port ? window.location.port : '4078';
+    const host = getEffectiveHost();
     const room = settings.roomCode || '';
     const key = settings.secretKey || '';
-    return `${origin}/?room=${encodeURIComponent(room)}&key=${encodeURIComponent(key)}`;
+    const portSuffix = port ? `:${port}` : '';
+    return `${protocol}//${host}${portSuffix}/?room=${encodeURIComponent(room)}&key=${encodeURIComponent(key)}`;
   };
 
   const pairingUrl = getPairingUrl();
@@ -66,6 +99,8 @@ export const PairingModal: React.FC = () => {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
+  const currentHostVal = getEffectiveHost();
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/95 overflow-y-auto">
       <div className="relative w-full max-w-lg glass-panel rounded-3xl p-5 sm:p-6 border border-slate-700/80 shadow-2xl flex flex-col my-auto space-y-4 max-h-[90vh] overflow-y-auto">
@@ -105,7 +140,43 @@ export const PairingModal: React.FC = () => {
               )}
             </div>
             <p className="text-[11px] text-slate-400 text-center leading-relaxed max-w-xs">
-              Pindai Kode QR di atas menggunakan kamera HP / Device lain untuk bergabung otomatis.
+              Pindai Kode QR di atas menggunakan kamera HP / Device lain di Wi-Fi yang sama untuk bergabung otomatis.
+            </p>
+          </div>
+
+          {/* Host IP Configurator Panel */}
+          <div className="p-3 bg-slate-900/70 rounded-2xl border border-slate-800/80 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-semibold text-slate-300 flex items-center space-x-1.5">
+                <Globe className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                <span>IP / Host Pairing (Untuk Device di Wi-Fi)</span>
+              </label>
+              {(typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) && (
+                <span className="text-[10px] text-amber-400/90 font-medium px-2 py-0.5 bg-amber-500/10 rounded-full border border-amber-500/20">
+                  Dev Localhost
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                value={hostOverride || currentHostVal}
+                onChange={(e) => setHostOverride(e.target.value)}
+                placeholder="misal: 192.168.18.12"
+                className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700/70 focus:border-indigo-500 rounded-xl font-mono text-xs text-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+              />
+              {hostOverride && (
+                <button
+                  onClick={() => setHostOverride('')}
+                  className="px-2.5 py-1.5 bg-slate-800 text-slate-300 hover:text-white text-[11px] rounded-xl shrink-0 transition-colors"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-400">
+              Ubah IP di atas jika HP Anda berada di IP LAN atau Tailscale yang berbeda.
             </p>
           </div>
 
@@ -126,6 +197,12 @@ export const PairingModal: React.FC = () => {
               </>
             )}
           </button>
+
+          {/* Display generated URL preview */}
+          <div className="px-3 py-2 bg-slate-950/80 rounded-xl border border-slate-800 font-mono text-[10px] text-slate-400 truncate flex items-center space-x-1">
+            <span className="text-slate-500 shrink-0">URL:</span>
+            <span className="text-slate-300 truncate select-all">{pairingUrl}</span>
+          </div>
 
           {/* Divider OR / ATAU */}
           <div className="relative flex py-1 items-center justify-center">
@@ -183,3 +260,4 @@ export const PairingModal: React.FC = () => {
     </div>
   );
 };
+

@@ -123,55 +123,46 @@ const limitItemsWithPinnedProtection = (allItems: ClipboardItem[], maxItems: num
   return [...pinned, ...truncatedUnpinned].sort((a, b) => b.timestamp - a.timestamp);
 };
 
-const detectDeviceFromUA = (): { name: string; platform: PlatformType } => {
-  const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-  if (isTauri) {
-    return { name: 'Linux Workstation (Tauri Desktop)', platform: 'linux' };
-  }
-  if (typeof navigator === 'undefined') {
-    return { name: 'Web Browser Device', platform: 'web' };
-  }
+const detectDeviceFromUA = (): { name: string; platform: PlatformType; isTauri: boolean } => {
+  if (typeof window === 'undefined') return { name: 'Web Client', platform: 'web', isTauri: false };
 
   const ua = navigator.userAgent;
+  const isTauriEnv = '__TAURI_INTERNALS__' in window;
 
-  // Phone / Mobile Browsers
-  if (/Android/i.test(ua)) {
-    return { name: 'Android Browser', platform: 'android' };
-  }
-  if (/iPhone|iPad|iPod/i.test(ua)) {
-    return { name: 'iOS Mobile Browser', platform: 'android' };
-  }
-
-  // PC Desktop Browsers
   let browserName = 'Web Browser';
   if (ua.includes('Firefox')) browserName = 'Firefox';
   else if (ua.includes('Edg')) browserName = 'Edge';
   else if (ua.includes('Chrome')) browserName = 'Chrome';
   else if (ua.includes('Safari')) browserName = 'Safari';
 
-  if (/Windows/i.test(ua)) {
-    return { name: `Windows PC (${browserName})`, platform: 'windows' };
-  }
-  if (/Macintosh|Mac OS X/i.test(ua)) {
-    return { name: `Mac PC (${browserName})`, platform: 'web' };
-  }
-  if (/Linux/i.test(ua)) {
-    return { name: `Linux PC (${browserName})`, platform: 'linux' };
+  if (!isTauriEnv) {
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(ua);
+    let osName = 'PC';
+    if (/Windows/i.test(ua)) osName = 'Windows PC';
+    else if (/Linux/i.test(ua)) osName = 'Linux PC';
+    else if (/Macintosh|Mac OS X/i.test(ua)) osName = 'Mac PC';
+
+    return {
+      name: isMobile ? `Mobile (${browserName})` : `${osName} (${browserName})`,
+      platform: isMobile ? 'android' : 'web',
+      isTauri: false,
+    };
   }
 
-  const isMobile = /Mobi|Android/i.test(ua);
-  return {
-    name: isMobile ? `Mobile Browser (${browserName})` : `PC Browser (${browserName})`,
-    platform: isMobile ? 'android' : 'web',
-  };
+  // Running inside genuine Tauri Desktop App!
+  if (/Windows/i.test(ua)) {
+    return { name: 'Windows PC (Desktop App)', platform: 'windows', isTauri: true };
+  }
+  return { name: 'Linux PC (Desktop App)', platform: 'linux', isTauri: true };
 };
 
 const getInitialCurrentDevice = (): Device => {
-  const { name, platform } = detectDeviceFromUA();
+  const { name, platform, isTauri } = detectDeviceFromUA();
   return {
     id: `dev-${Math.random().toString(36).substring(2, 9)}`,
     name,
     platform,
+    isTauri,
     status: 'online',
     ipAddress: 'Mendeteksi...',
     isCurrentDevice: true,

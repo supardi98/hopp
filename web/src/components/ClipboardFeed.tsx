@@ -116,9 +116,9 @@ export const ClipboardFeed: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Search & Filter Header */}
-      <div className="flex items-center justify-between gap-2 sm:gap-3 glass-card rounded-2xl p-2 sm:p-2.5 border border-slate-800/80">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 glass-card rounded-2xl p-2.5 border border-slate-800/80">
         {/* Tab Filters Wrapper with Clean Icon-Only Scroll Arrows */}
-        <div className="flex items-center space-x-1 flex-1 min-w-0">
+        <div className="flex items-center space-x-1 w-full sm:w-auto flex-1 min-w-0">
           {/* Left Arrow Button */}
           {canScrollLeft && (
             <button
@@ -138,7 +138,7 @@ export const ClipboardFeed: React.FC = () => {
             onMouseUp={handleMouseLeaveOrUp}
             onMouseMove={handleMouseMove}
             onWheel={handleWheel}
-            className={`flex items-center space-x-1 overflow-x-auto no-scrollbar flex-1 min-w-0 py-0.5 select-none ${
+            className={`flex items-center space-x-1 overflow-x-auto no-scrollbar w-full sm:w-auto flex-1 min-w-0 py-0.5 select-none ${
               isMouseDown ? 'cursor-grabbing' : 'cursor-grab'
             }`}
           >
@@ -174,12 +174,12 @@ export const ClipboardFeed: React.FC = () => {
         </div>
 
         {/* Search Bar, Tag List Popover & Clear Button */}
-        <div className="flex items-center space-x-2 shrink-0">
+        <div className="flex items-center space-x-2 w-full sm:w-auto justify-between sm:justify-end shrink-0 pt-2 sm:pt-0 border-t border-slate-800/60 sm:border-t-0">
           {/* Tag List Popover Button */}
           <div className="relative">
             <button
               onClick={() => setTagMenuOpen((prev) => !prev)}
-              className={`flex items-center space-x-1.5 px-2 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
                 searchQuery.startsWith('#') || tagMenuOpen
                   ? 'bg-indigo-600/30 text-indigo-300 border-indigo-500/50 shadow-md shadow-indigo-950/40'
                   : 'bg-slate-900/90 text-slate-300 hover:text-white border-slate-800 hover:border-slate-700'
@@ -193,7 +193,7 @@ export const ClipboardFeed: React.FC = () => {
 
             {/* Tag List Popover Dropdown */}
             {tagMenuOpen && (
-              <div className="absolute right-0 mt-2 w-64 glass-panel rounded-2xl p-3 border border-slate-700/80 shadow-2xl z-50 space-y-2.5 animate-fadeIn">
+              <div className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-64 max-w-[calc(100vw-2rem)] glass-panel rounded-2xl p-3 border border-slate-700/80 shadow-2xl z-50 space-y-2.5 animate-fadeIn">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                   <p className="text-[11px] uppercase font-mono font-bold text-indigo-400 tracking-wider flex items-center space-x-1">
                     <Tag className="w-3.5 h-3.5" />
@@ -261,7 +261,7 @@ export const ClipboardFeed: React.FC = () => {
             )}
           </div>
 
-          <div className="relative w-32 sm:w-36 md:w-40 focus-within:w-44 sm:focus-within:w-52 transition-all duration-200">
+          <div className="relative flex-1 sm:flex-initial w-full sm:w-36 md:w-40 focus-within:sm:w-52 transition-all duration-200">
             <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"

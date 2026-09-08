@@ -237,6 +237,20 @@ class WebRTCManager {
     return sentCount > 0;
   }
 
+  public sendRemoteControlInputP2P(targetDeviceId: string, payload: any): boolean {
+    if (!this.enabled || !this.isSupported()) return false;
+    const channel = this.dataChannels.get(targetDeviceId);
+    if (channel && channel.readyState === 'open') {
+      try {
+        channel.send(JSON.stringify({ type: 'REMOTE_CONTROL_INPUT', ...payload }));
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+    return false;
+  }
+
   public closeAll() {
     this.dataChannels.forEach((ch) => ch.close());
     this.peerConnections.forEach((pc) => pc.close());
@@ -267,11 +281,25 @@ class WebRTCManager {
     channel.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === 'P2P_CLIPBOARD_ITEM' && data.item) {
-          this.itemHandlers.forEach((handler) => handler(data.item));
+        if (data.type === 'P2P_CLIPBOARD_ITEM') {
+          this.itemHandlers.forEach((h) => h(data.item));
+        } else if (data.type === 'REMOTE_CONTROL_INPUT') {
+          if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+            import('@tauri-apps/api/core')
+              .then(({ invoke }) => {
+                invoke('execute_remote_input', {
+                  action: data.action,
+                  dx: Math.round(data.dx || 0),
+                  dy: Math.round(data.dy || 0),
+                  text: data.text || '',
+                  key: data.key || '',
+                }).catch(() => {});
+              })
+              .catch(() => {});
+          }
         }
       } catch (err) {
-        console.warn('[WebRTC P2P] Message parse error:', err);
+        console.warn('[WebRTC P2P] Failed to parse DataChannel message:', err);
       }
     };
   }

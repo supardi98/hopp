@@ -128,6 +128,35 @@ wss.on('connection', (ws, req) => {
         return;
       }
 
+      // 2.6. Remote Control Input Relay (Touchpad & Keyboard Injection)
+      if (data.type === 'REMOTE_CONTROL_INPUT') {
+        const targetRoom = data.roomCode || session.roomCode;
+        if (!targetRoom) return;
+
+        clients.forEach((client) => {
+          if (
+            client.roomCode === targetRoom &&
+            client.ws !== ws &&
+            client.ws.readyState === WebSocket.OPEN &&
+            (!data.targetDeviceId || client.deviceId === data.targetDeviceId)
+          ) {
+            client.ws.send(
+              JSON.stringify({
+                type: 'REMOTE_CONTROL_INPUT',
+                action: data.action,
+                dx: data.dx || 0,
+                dy: data.dy || 0,
+                text: data.text || '',
+                key: data.key || '',
+                senderDeviceId: data.senderDeviceId || session.deviceId,
+                targetDeviceId: data.targetDeviceId,
+              })
+            );
+          }
+        });
+        return;
+      }
+
       // 3. Delete Clipboard Item from Room History Cache & Broadcast to Room
       if (data.type === 'DELETE_CLIPBOARD_ITEM') {
         const targetRoom = data.roomCode || session.roomCode;

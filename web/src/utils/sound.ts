@@ -12,7 +12,7 @@ export const playNotificationChime = () => {
     }
 
     if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
+      audioCtx.resume().catch(() => {});
     }
 
     const now = audioCtx.currentTime;
@@ -44,3 +44,4 @@ export const playNotificationChime = () => {
     console.warn('Failed to play notification chime:', err);
   }
 };
+

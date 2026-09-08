@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Terminal, Monitor, Smartphone, Globe, Plus, CheckCircle2, Info, X, ShieldCheck, Activity, Zap } from 'lucide-react';
+import { Terminal, Monitor, Smartphone, Globe, Plus, CheckCircle2, Info, X, ShieldCheck, Activity, Zap, Gamepad2 } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 import { WSLogModal } from './WSLogModal';
+import { RemoteTouchpadModal } from './RemoteTouchpadModal';
 import { webrtcManager } from '../lib/webrtcClient';
 import type { Device, PlatformType } from '../types';
 
 export const DeviceList: React.FC = () => {
   const { pairedDevices, setPairingModalOpen, settings, isWsConnected, setDeviceListOpen, activeP2pPeers = [] } = useHoppStore();
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [touchpadDevice, setTouchpadDevice] = useState<Device | null>(null);
   const [isLogModalOpen, setLogModalOpen] = useState(false);
 
   const getPlatformIcon = (platform: PlatformType) => {
@@ -143,8 +145,21 @@ export const DeviceList: React.FC = () => {
                   </div>
 
                   {/* Status & Actions */}
-                  <div className="flex items-center space-x-2 shrink-0 ml-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <div className="flex items-center space-x-1.5 shrink-0 ml-2">
+                    {!device.isCurrentDevice && (device.isTauri || (device.platform !== 'web' && device.platform !== 'android')) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTouchpadDevice(device);
+                        }}
+                        className="flex items-center space-x-1 px-2 py-1 text-xs font-bold text-indigo-300 hover:text-white bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-700/50 rounded-lg transition-all"
+                      >
+                        <Gamepad2 className="w-3.5 h-3.5 text-indigo-400" />
+                        <span className="hidden sm:inline">Remote</span>
+                      </button>
+                    )}
+
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 ml-1" />
 
                     <button
                       onClick={(e) => {
@@ -239,16 +254,36 @@ export const DeviceList: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-2 flex justify-end">
+            <div className="pt-2 flex items-center justify-between space-x-2">
+              {!selectedDevice.isCurrentDevice && (selectedDevice.isTauri || (selectedDevice.platform !== 'web' && selectedDevice.platform !== 'android')) && (
+                <button
+                  onClick={() => {
+                    setTouchpadDevice(selectedDevice);
+                    setSelectedDevice(null);
+                  }}
+                  className="w-full py-2 px-3 text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl shadow-md transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
+                >
+                  <Gamepad2 className="w-4 h-4 text-indigo-200" />
+                  <span>Remote Controller (Mouse & Keyboard)</span>
+                </button>
+              )}
               <button
                 onClick={() => setSelectedDevice(null)}
-                className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-md transition-all"
+                className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 rounded-xl border border-slate-800 transition-all shrink-0"
               >
-                Tutup Detail
+                Tutup
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Remote Touchpad Mouse & Keyboard Controller Modal */}
+      {touchpadDevice && (
+        <RemoteTouchpadModal
+          targetDevice={touchpadDevice}
+          onClose={() => setTouchpadDevice(null)}
+        />
       )}
 
       {/* Live WebSocket Debugger Log Modal */}

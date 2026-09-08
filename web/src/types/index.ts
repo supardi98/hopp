@@ -11,6 +11,7 @@ export interface Device {
   isCurrentDevice?: boolean;
   lastSync?: string;
   batteryLevel?: number;
+  isTauri?: boolean;
 }
 
 export type ContentType = 'text' | 'code' | 'url' | 'sensitive' | 'image' | 'file';

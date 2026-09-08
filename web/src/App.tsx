@@ -66,16 +66,31 @@ export function App() {
         ? roomParam.trim().toUpperCase()
         : `HOPP-${roomParam.trim().toUpperCase()}`;
 
-      setPendingJoin({
-        roomCode: formattedRoom,
-        secretKey: keyParam ? keyParam.trim().toUpperCase() : undefined,
-      });
+      const keyVal = keyParam ? keyParam.trim().toUpperCase() : undefined;
+
+      // If user scanned QR code with both room & key, auto-join immediately!
+      if (keyVal) {
+        updateSettings({
+          roomCode: formattedRoom,
+          secretKey: keyVal,
+          isRoomSet: true,
+          enabled: true,
+        });
+        initRealtimeSync();
+        showToast(`Berhasil bergabung ke Room ${formattedRoom}!`);
+        window.history.replaceState({}, '', window.location.pathname);
+      } else {
+        setPendingJoin({
+          roomCode: formattedRoom,
+          secretKey: undefined,
+        });
+      }
     } else if (settings.isRoomSet) {
       initRealtimeSync();
     } else {
       setOnboardingOpen(true);
     }
-  }, [initRealtimeSync, settings.isRoomSet, setOnboardingOpen]);
+  }, [initRealtimeSync, settings.isRoomSet, setOnboardingOpen, updateSettings, showToast]);
 
   // Native OS Clipboard Listener (Event-Driven: Focus, Visibility & Paste triggers for 0% CPU & zero typing lag)
   useEffect(() => {

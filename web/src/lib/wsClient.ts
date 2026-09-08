@@ -1,4 +1,5 @@
 import type { ClipboardItem, Device } from '../types';
+import { webrtcManager } from './webrtcClient';
 
 type MessageHandler = (data: any) => void;
 
@@ -144,6 +145,24 @@ class RealtimeWSClient {
         try {
           const data = JSON.parse(event.data);
           this.addLog('recv', `Menerima event (${data.type})`, JSON.stringify(data).substring(0, 150));
+
+          // Handle Tauri OS Remote Input Execution (Mouse & Keyboard Injection on Desktop App)
+          if (data.type === 'REMOTE_CONTROL_INPUT') {
+            if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+              import('@tauri-apps/api/core')
+                .then(({ invoke }) => {
+                  invoke('execute_remote_input', {
+                    action: data.action,
+                    dx: Math.round(data.dx || 0),
+                    dy: Math.round(data.dy || 0),
+                    text: data.text || '',
+                    key: data.key || '',
+                  }).catch((err) => console.error('Tauri remote input error:', err));
+                })
+                .catch(() => {});
+            }
+          }
+
           this.handlers.forEach((h) => h(data));
         } catch (e) {
           this.addLog('error', `Gagal parse pesan WebSocket JSON`, String(e));
@@ -194,6 +213,29 @@ class RealtimeWSClient {
       type: 'SYNC_CLIPBOARD_ITEM',
       item,
       roomCode: roomCode || item.roomCode || '',
+    });
+  }
+
+  public sendRemoteControlInput(
+    targetDeviceId: string,
+    action: string,
+    payload: { dx?: number; dy?: number; text?: string; key?: string },
+    roomCode?: string
+  ) {
+    // 1. Try ultra-low latency WebRTC Direct P2P first if data channel is OPEN!
+    const p2pSent = webrtcManager.sendRemoteControlInputP2P(targetDeviceId, { action, ...payload });
+    if (p2pSent) return;
+
+    // 2. Fallback to WebSocket Relay if P2P is not connected
+    this.send({
+      type: 'REMOTE_CONTROL_INPUT',
+      targetDeviceId,
+      action,
+      dx: payload.dx || 0,
+      dy: payload.dy || 0,
+      text: payload.text || '',
+      key: payload.key || '',
+      roomCode: roomCode || '',
     });
   }
 
