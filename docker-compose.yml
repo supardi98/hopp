@@ -15,8 +15,8 @@ services:
 
   hopp-web:
     build:
-      context: ./web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: web/Dockerfile
     container_name: hopp-web
     ports:
       - "80:80"
