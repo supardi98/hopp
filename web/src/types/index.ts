@@ -50,4 +50,6 @@ export interface E2EESettings {
   lastConnectedTimestamp?: number;
   customRelayUrl?: string;
   webrtcP2pEnabled?: boolean;
+  appPin?: string;
+  requirePinForSensitive?: boolean;
 }

@@ -7,6 +7,7 @@ import { PairingModal } from './components/PairingModal';
 import { SettingsModal } from './components/SettingsModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { E2EEModal } from './components/E2EEModal';
+import { PinLockModal } from './components/PinLockModal';
 import { CommandPalette } from './components/CommandPalette';
 import { GlobalDropzone } from './components/GlobalDropzone';
 import { BatchActionBar } from './components/BatchActionBar';
@@ -218,6 +219,7 @@ export function App() {
           <PairingModal />
           <SettingsModal />
           <E2EEModal />
+          <PinLockModal />
           <OnboardingModal isOpen={isOnboardingOpen && !pendingJoin} onClose={() => setOnboardingOpen(false)} />
 
           {/* Join Link Confirmation Modal */}

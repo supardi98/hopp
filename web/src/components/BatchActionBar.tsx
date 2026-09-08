@@ -54,7 +54,6 @@ export const BatchActionBar: React.FC = () => {
           <button
             onClick={exportSelectedItemsJSON}
             className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold text-slate-200 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl transition-all"
-            title="Ekspor item terpilih ke file JSON"
           >
             <Download className="w-3.5 h-3.5 text-cyan-400" />
             <span className="hidden sm:inline">Ekspor JSON</span>
@@ -103,7 +102,6 @@ export const BatchActionBar: React.FC = () => {
           <button
             onClick={() => setSelectMode(false)}
             className="p-1.5 text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-xl border border-slate-800"
-            title="Tutup mode pilih"
           >
             <X className="w-4 h-4" />
           </button>

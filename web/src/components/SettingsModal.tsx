@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShieldCheck, RefreshCw, Key, Database, Sliders, Globe, RotateCcw, Copy, Check, AlertTriangle, Zap } from 'lucide-react';
+import { X, ShieldCheck, RefreshCw, Key, Database, Sliders, Globe, RotateCcw, Copy, Check, AlertTriangle, Zap, Lock } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 import { generateSecretKey, isSubtleCryptoAvailable } from '../lib/crypto';
 import { getEffectiveRelayUrl } from '../lib/wsClient';
 import { writeSystemClipboard } from '../lib/nativeClipboard';
 
 export const SettingsModal: React.FC = () => {
-  const { isSettingsModalOpen, setSettingsModalOpen, settings, updateSettings, showToast } = useHoppStore();
+  const { isSettingsModalOpen, setSettingsModalOpen, settings, updateSettings, showToast, setAppPin } = useHoppStore();
   const [copiedKey, setCopiedKey] = useState(false);
+  const [pinInput, setPinInput] = useState('');
 
   useEffect(() => {
     if (!isSettingsModalOpen) return;
@@ -244,6 +245,63 @@ export const SettingsModal: React.FC = () => {
                 onChange={(e) => updateSettings({ soundAlert: e.target.checked })}
                 className="w-4 h-4 accent-indigo-600 rounded cursor-pointer shrink-0"
               />
+            </div>
+          </div>
+
+          {/* PIN Lock Section */}
+          <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Lock className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span className="text-xs font-bold text-slate-200">Kunci Aplikasi & Proteksi Data Sensitif (PIN)</span>
+              </div>
+              {settings.appPin && (
+                <span className="px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 rounded-md">
+                  PIN Aktif
+                </span>
+              )}
+            </div>
+
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Setel PIN 4-digit untuk mengunci layar aplikasi dan memerlukan verifikasi PIN sebelum membuka data sensitif (*password, token, JWT*).
+            </p>
+
+            <div className="flex items-center space-x-2 pt-1">
+              <input
+                type="password"
+                maxLength={4}
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
+                placeholder={settings.appPin ? 'Ubah PIN 4 digit' : 'Setel PIN 4 digit'}
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl font-mono text-xs text-indigo-300 placeholder-slate-600 focus:outline-none tracking-widest text-center"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (pinInput.length === 4) {
+                    setAppPin(pinInput);
+                    setPinInput('');
+                  } else {
+                    showToast('PIN harus 4 digit angka');
+                  }
+                }}
+                disabled={pinInput.length !== 4}
+                className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:bg-slate-800 rounded-xl transition-all shrink-0 cursor-pointer"
+              >
+                Simpan PIN
+              </button>
+              {settings.appPin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAppPin(null);
+                    setPinInput('');
+                  }}
+                  className="px-3 py-2 text-xs font-bold text-red-400 hover:text-white bg-red-950/60 hover:bg-red-900 border border-red-500/30 rounded-xl transition-all shrink-0 cursor-pointer"
+                >
+                  Hapus
+                </button>
+              )}
             </div>
           </div>
 

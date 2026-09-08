@@ -18,6 +18,7 @@ import {
   FileUp,
   Download,
   Eye,
+  EyeOff,
   X,
   Share2,
   Timer,
@@ -35,6 +36,7 @@ import { getPayloadFromDB } from '../utils/storageDB';
 import { isJSONString, formatJSON, isCodeSnippet, detectLanguage } from '../utils/codeFormatter';
 import { analyzeSensitivity } from '../utils/sensitiveDetector';
 import { extractTextFromImage } from '../utils/ocrExtractor';
+import { PinLockModal } from './PinLockModal';
 
 interface ClipboardCardProps {
   item: ClipboardItem;
@@ -54,8 +56,9 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
   const [tagToDeleteConfirm, setTagToDeleteConfirm] = useState<string | null>(null);
   const [timeLeftStr, setTimeLeftStr] = useState<string | null>(null);
 
-  // OCR & Sensitivity States
+  // OCR & Sensitivity & PIN Prompt States
   const [showSensitive, setShowSensitive] = useState(false);
+  const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [ocrText, setOcrText] = useState<string | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrCopied, setOcrCopied] = useState(false);
@@ -70,6 +73,7 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
     selectedItemIds,
     isSelectMode,
     toggleSelectItem,
+    settings,
   } = useHoppStore();
 
   const isSelected = selectedItemIds.includes(item.id);
@@ -98,6 +102,15 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
   }, [item.expiresAt]);
+
+  // Auto-hide sensitive data after 6 seconds of peeking (Auto-tutup)
+  useEffect(() => {
+    if (!showSensitive) return;
+    const timer = setTimeout(() => {
+      setShowSensitive(false);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [showSensitive]);
 
   useEffect(() => {
     // If payload is stored in IndexedDB, fetch it asynchronously
@@ -298,7 +311,6 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
               <button
                 onClick={() => toggleSelectItem(item.id)}
                 className="p-0.5 text-slate-300 hover:text-indigo-400 transition-colors shrink-0 cursor-pointer"
-                title="Pilih item ini"
               >
                 {isSelected ? (
                   <CheckSquare className="w-4.5 h-4.5 text-indigo-400" />
@@ -389,7 +401,6 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
                           setTagToDeleteConfirm(t);
                         }}
                         className="hover:text-red-300 opacity-60 hover:opacity-100 p-0.5"
-                        title="Hapus tag ini"
                       >
                         <X className="w-2.5 h-2.5" />
                       </button>
@@ -415,7 +426,6 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
                     ? 'text-rose-400 bg-rose-500/10 border-rose-500/30'
                     : 'text-slate-400 hover:text-slate-200 bg-slate-800/40 hover:bg-slate-800 border-slate-700/40'
                 }`}
-                title="Setel Self-Destruct Timer"
               >
                 <Timer className="w-3.5 h-3.5" />
               </button>
@@ -472,7 +482,6 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
               <button
                 onClick={() => setTagModalOpen(!tagModalOpen)}
                 className="p-1.5 text-slate-400 hover:text-indigo-300 bg-slate-800/40 hover:bg-slate-800 border border-slate-700/40 rounded-lg transition-colors"
-                title="Tambah Tag Custom (#Kerja)"
               >
                 <Tag className="w-3.5 h-3.5" />
               </button>
@@ -534,7 +543,6 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
               <button
                 onClick={handleShare}
                 className="p-1.5 text-cyan-300 hover:text-white bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-700/50 rounded-lg transition-colors"
-                title="Bagikan via Web Share API"
               >
                 <Share2 className="w-3.5 h-3.5 text-cyan-400" />
               </button>
@@ -545,7 +553,6 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
                 onClick={handleRunOCR}
                 disabled={ocrLoading}
                 className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold text-cyan-300 bg-cyan-950/80 hover:bg-cyan-900 border-cyan-700/50 transition-all cursor-pointer"
-                title="Ekstrak teks tulisan dari gambar via OCR"
               >
                 <ScanText className={`w-3.5 h-3.5 text-cyan-400 ${ocrLoading ? 'animate-spin' : ''}`} />
                 <span>{ocrLoading ? 'Memindai...' : 'Teks OCR'}</span>
@@ -616,7 +623,23 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
         )}
 
         {/* Content View */}
-        <div className="relative">
+        <div className="relative space-y-2">
+          {sensitivity.isSensitive && showSensitive && (
+            <div className="flex items-center justify-between p-2.5 bg-amber-950/40 border border-amber-500/30 rounded-xl text-xs font-mono animate-fadeIn">
+              <span className="flex items-center space-x-1.5 text-amber-300 font-semibold text-[11px]">
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>Data Sensitif Terbuka (Auto-tutup dalam 6s)</span>
+              </span>
+              <button
+                onClick={() => setShowSensitive(false)}
+                className="px-2 py-0.5 text-[11px] font-bold text-amber-300 hover:text-white bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 rounded-lg flex items-center space-x-1 transition-all cursor-pointer"
+              >
+                <EyeOff className="w-3 h-3" />
+                <span>Sembunyikan</span>
+              </button>
+            </div>
+          )}
+
           {sensitivity.isSensitive && !showSensitive ? (
             <div className="p-3 bg-amber-950/20 border border-amber-500/30 rounded-xl flex items-center justify-between gap-2">
               <div className="flex items-center space-x-2 truncate">
@@ -626,7 +649,13 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
                 </span>
               </div>
               <button
-                onClick={() => setShowSensitive(true)}
+                onClick={() => {
+                  if (settings.appPin) {
+                    setShowPinPrompt(true);
+                  } else {
+                    setShowSensitive(true);
+                  }
+                }}
                 className="px-2.5 py-1 text-xs font-bold text-amber-300 hover:text-white bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 rounded-lg flex items-center space-x-1 shrink-0 transition-all cursor-pointer"
               >
                 <Eye className="w-3.5 h-3.5" />
@@ -800,6 +829,21 @@ export const ClipboardCard: React.FC<ClipboardCardProps> = ({ item }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Sensitive Data PIN Unlock Verification Modal */}
+      {showPinPrompt && (
+        <PinLockModal
+          title="Verifikasi PIN Keamanan"
+          subtitle="Masukkan PIN 4-digit untuk membuka data sensitif ini."
+          onVerify={(success) => {
+            if (success) {
+              setShowSensitive(true);
+              setShowPinPrompt(false);
+            }
+          }}
+          onCancel={() => setShowPinPrompt(false)}
+        />
       )}
     </>
   );

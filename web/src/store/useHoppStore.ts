@@ -37,6 +37,7 @@ interface HoppState {
   activeP2pPeers: string[];
   selectedItemIds: string[];
   isSelectMode: boolean;
+  isAppLocked: boolean;
 
   // Actions
   initRealtimeSync: () => void;
@@ -70,6 +71,9 @@ interface HoppState {
   clearSelectedItems: () => void;
   deleteSelectedItems: () => void;
   exportSelectedItemsJSON: () => void;
+  setAppPin: (pin: string | null) => void;
+  lockApp: () => void;
+  unlockApp: (pin: string) => boolean;
 }
 
 const isLocalLanIp = (senderIp?: string, myIp?: string): boolean => {
@@ -219,6 +223,7 @@ export const useHoppStore = create<HoppState>()(
         activeP2pPeers: [],
         selectedItemIds: [],
         isSelectMode: false,
+        isAppLocked: false,
 
         initRealtimeSync: () => {
           const { name, platform } = detectDeviceFromUA();
@@ -864,6 +869,40 @@ export const useHoppStore = create<HoppState>()(
           downloadAnchor.remove();
 
           get().showToast(`${targetItems.length} item berhasil diekspor ke JSON!`);
+        },
+
+        setAppPin: (pin) => {
+          set((state) => ({
+            settings: {
+              ...state.settings,
+              appPin: pin ? pin.trim() : undefined,
+            },
+          }));
+          if (pin) {
+            get().showToast('PIN Kunci Aplikasi berhasil disetel!');
+          } else {
+            get().showToast('PIN Kunci Aplikasi dihapus.');
+          }
+        },
+
+        lockApp: () => {
+          const { settings } = get();
+          if (!settings.appPin) {
+            get().showToast('Setel PIN terlebih dahulu di Pengaturan.');
+            return;
+          }
+          set({ isAppLocked: true });
+          get().showToast('Aplikasi terkunci. Masukkan PIN untuk membuka.');
+        },
+
+        unlockApp: (inputPin) => {
+          const { settings } = get();
+          if (!settings.appPin || settings.appPin === inputPin.trim()) {
+            set({ isAppLocked: false });
+            get().showToast('Aplikasi berhasil dibuka!');
+            return true;
+          }
+          return false;
         },
       };
     },

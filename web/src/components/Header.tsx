@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Settings, KeyRound, RefreshCw, Command } from 'lucide-react';
+import { ShieldCheck, Settings, KeyRound, RefreshCw, Command, Lock } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 
 interface HeaderProps {
@@ -14,6 +14,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCommandPalette }) => {
     setOnboardingOpen,
     setDeviceListOpen,
     setE2EEModalOpen,
+    lockApp,
     activeToast,
   } = useHoppStore();
 
@@ -64,6 +65,22 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCommandPalette }) => {
               <span className="font-mono text-xs">{settings.roomCode || 'Room'}</span>
             </button>
             <button
+              onClick={() => {
+                if (settings.appPin) {
+                  lockApp();
+                } else {
+                  setSettingsModalOpen(true);
+                }
+              }}
+              className={`p-1.5 rounded-lg border transition-colors ${
+                settings.appPin
+                  ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30'
+                  : 'text-slate-400 bg-slate-800/60 border-slate-700/50'
+              }`}
+            >
+              <Lock className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => setSettingsModalOpen(true)}
               className="p-1.5 text-slate-400 bg-slate-800/60 rounded-lg border border-slate-700/50"
             >
@@ -99,7 +116,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCommandPalette }) => {
             <button
               onClick={onOpenCommandPalette}
               className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-xl border border-slate-700/60 transition-all shadow-sm"
-              title="Command Palette (Ctrl + K)"
             >
               <Command className="w-3.5 h-3.5 text-indigo-400" />
               <span className="font-mono text-[11px] text-slate-400">Ctrl + K</span>
@@ -112,6 +128,22 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCommandPalette }) => {
           >
             <KeyRound className="w-4 h-4 text-indigo-200 shrink-0" />
             <span>Room: {settings.roomCode || 'Belum Set'}</span>
+          </button>
+          <button
+            onClick={() => {
+              if (settings.appPin) {
+                lockApp();
+              } else {
+                setSettingsModalOpen(true);
+              }
+            }}
+            className={`p-2 rounded-lg border transition-colors cursor-pointer ${
+              settings.appPin
+                ? 'text-indigo-300 bg-indigo-500/10 border-indigo-500/30 hover:bg-indigo-500/20'
+                : 'text-slate-400 hover:text-slate-200 bg-slate-800/60 hover:bg-slate-800 border-slate-700/50'
+            }`}
+          >
+            <Lock className="w-4 h-4" />
           </button>
           <button
             onClick={() => setSettingsModalOpen(true)}

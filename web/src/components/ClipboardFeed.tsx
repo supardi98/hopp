@@ -124,7 +124,6 @@ export const ClipboardFeed: React.FC = () => {
             <button
               onClick={() => handleScrollBy(-150)}
               className="p-1 text-indigo-400 hover:text-white transition-colors shrink-0 animate-fadeIn cursor-pointer"
-              title="Geser Tab ke Kiri"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -168,7 +167,6 @@ export const ClipboardFeed: React.FC = () => {
             <button
               onClick={() => handleScrollBy(150)}
               className="p-1 text-indigo-400 hover:text-white transition-colors shrink-0 animate-fadeIn cursor-pointer"
-              title="Geser Tab ke Kanan"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -186,7 +184,6 @@ export const ClipboardFeed: React.FC = () => {
                   ? 'bg-indigo-600/30 text-indigo-300 border-indigo-500/50 shadow-md shadow-indigo-950/40'
                   : 'bg-slate-900/90 text-slate-300 hover:text-white border-slate-800 hover:border-slate-700'
               }`}
-              title="Lihat semua Tag"
             >
               <Tag className="w-3.5 h-3.5 text-indigo-400" />
               <span className="px-1.5 py-0.2 text-[10px] font-bold text-indigo-300 bg-indigo-500/20 rounded-full">
@@ -292,7 +289,6 @@ export const ClipboardFeed: React.FC = () => {
                     ? 'text-indigo-300 bg-indigo-600/30 border-indigo-500/50 shadow-md shadow-indigo-950/40'
                     : 'text-slate-400 hover:text-slate-200 bg-slate-900 border-slate-800'
                 }`}
-                title="Mode pilih / centang banyak item"
               >
                 <CheckSquare className="w-3.5 h-3.5" />
               </button>
@@ -300,7 +296,6 @@ export const ClipboardFeed: React.FC = () => {
               <button
                 onClick={() => setShowConfirmClear(true)}
                 className="p-2 text-slate-500 hover:text-red-400 bg-slate-900 hover:bg-red-500/10 rounded-xl border border-slate-800 transition-colors"
-                title="Bersihkan seluruh item"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
