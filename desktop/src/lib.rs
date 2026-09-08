@@ -1,5 +1,3 @@
-pub mod server;
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   #[cfg(target_os = "linux")]
@@ -19,9 +17,6 @@ pub fn run() {
             .build(),
         )?;
       }
-
-      // Standalone Node.js server (node server/index.js) is used as the single unified server
-      // server::start_embedded_server();
 
       Ok(())
     })
