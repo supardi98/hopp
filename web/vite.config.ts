@@ -51,8 +51,16 @@ export default defineConfig({
         xfwd: true, // Pass X-Forwarded-For header containing client IP
         rewrite: (path) => path.replace(/^\/ws/, ''),
         configure: (proxy) => {
-          proxy.on('error', (_err, _req, _res) => {
-            // Silently ignore initial startup ECONNREFUSED before server finishes starting
+          proxy.on('error', (err, _req, _res) => {
+            // Suppress expected connection errors:
+            // - ECONNREFUSED: server not ready yet on startup
+            // - ECONNRESET: client (e.g. Safari/mobile) closed connection abruptly without WS close frame
+            if (err.message.includes('ECONNREFUSED') || err.message.includes('ECONNRESET')) return;
+            console.error('[ws proxy error]', err.message);
+          });
+          proxy.on('proxyReqWsError', (err) => {
+            if (err.message.includes('ECONNRESET')) return;
+            console.error('[ws proxy req error]', err.message);
           });
         },
       },
