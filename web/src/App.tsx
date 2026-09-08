@@ -6,14 +6,15 @@ import { ClipboardFeed } from './components/ClipboardFeed';
 import { PairingModal } from './components/PairingModal';
 import { SettingsModal } from './components/SettingsModal';
 import { OnboardingModal } from './components/OnboardingModal';
-import { Shield, MonitorSmartphone, RefreshCw } from 'lucide-react';
+import { E2EEModal } from './components/E2EEModal';
+import { MonitorSmartphone, RefreshCw } from 'lucide-react';
 import { useHoppStore } from './store/useHoppStore';
 
 import { useRef } from 'react';
 import { readSystemClipboard, isTauriEnvironment } from './lib/nativeClipboard';
 
 export function App() {
-  const { initRealtimeSync, isOnboardingOpen, setOnboardingOpen, settings, addClipboardItem, items, isOtherTabActive, reconnectAsLeader } = useHoppStore();
+  const { initRealtimeSync, isOnboardingOpen, setOnboardingOpen, settings, addClipboardItem, items, isOtherTabActive, reconnectAsLeader, isDeviceListOpen, setDeviceListOpen } = useHoppStore();
   const lastObservedClipboardRef = useRef<string>('');
 
   useEffect(() => {
@@ -130,32 +131,37 @@ export function App() {
 
           {/* Main Dashboard Layout */}
           <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Column: Device Manager & Security Summary */}
-            <div className="lg:col-span-4 space-y-6">
+            {/* Left Column: Device Manager — always visible on desktop */}
+            <div className="hidden lg:block lg:col-span-4 space-y-6">
               <DeviceList />
-
-              {/* E2EE Info Box */}
-              <div className="glass-card rounded-2xl p-4 border border-slate-800/80 space-y-2">
-                <div className="flex items-center space-x-2 text-purple-400 font-semibold text-xs">
-                  <Shield className="w-4 h-4" />
-                  <span>Proteksi Privasi E2EE (Zero-Knowledge)</span>
-                </div>
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Teks, gambar, dan file di-enkripsi di peranti (AES-256-GCM) sebelum dikirim via WebSocket Relay. Server relay bersifat Zero-Knowledge dan tidak dapat membaca teks asli Anda.
-                </p>
-              </div>
             </div>
 
             {/* Right Column: Broadcast Box & Live Sync Feed */}
-            <div className="lg:col-span-8 space-y-6">
+            <div className="col-span-1 lg:col-span-8 space-y-6">
               <ClipboardInput />
               <ClipboardFeed />
             </div>
           </main>
 
+          {/* Device List — bottom-sheet modal on mobile only */}
+          {isDeviceListOpen && (
+            <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end" onClick={() => setDeviceListOpen(false)}>
+              <div className="absolute inset-0 bg-slate-950/70" />
+              <div
+                className="relative bg-slate-900 border-t border-slate-700/60 rounded-t-2xl p-4 max-h-[80vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Handle bar */}
+                <div className="w-10 h-1 bg-slate-700 rounded-full mx-auto mb-4" />
+                <DeviceList />
+              </div>
+            </div>
+          )}
+
           {/* Modals */}
           <PairingModal />
           <SettingsModal />
+          <E2EEModal />
           <OnboardingModal isOpen={isOnboardingOpen} onClose={() => setOnboardingOpen(false)} />
         </>
       )}

@@ -27,9 +27,11 @@ interface HoppState {
   isPairingModalOpen: boolean;
   isSettingsModalOpen: boolean;
   isOnboardingOpen: boolean;
+  isE2EEModalOpen: boolean;
   activeToast: string | null;
   isWsConnected: boolean;
   isOtherTabActive: boolean;
+  isDeviceListOpen: boolean;
 
   // Actions
   initRealtimeSync: () => void;
@@ -47,6 +49,8 @@ interface HoppState {
   setPairingModalOpen: (open: boolean) => void;
   setSettingsModalOpen: (open: boolean) => void;
   setOnboardingOpen: (open: boolean) => void;
+  setDeviceListOpen: (open: boolean) => void;
+  setE2EEModalOpen: (open: boolean) => void;
   showToast: (msg: string) => void;
   leaveRoom: () => void;
   reconnectAsLeader: () => void;
@@ -80,12 +84,55 @@ const limitItemsWithPinnedProtection = (allItems: ClipboardItem[], maxItems: num
   return [...pinned, ...truncatedUnpinned].sort((a, b) => b.timestamp - a.timestamp);
 };
 
-const getInitialCurrentDevice = (): Device => {
+const detectDeviceFromUA = (): { name: string; platform: PlatformType } => {
   const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  if (isTauri) {
+    return { name: 'Linux Workstation (Tauri Desktop)', platform: 'linux' };
+  }
+  if (typeof navigator === 'undefined') {
+    return { name: 'Web Browser Device', platform: 'web' };
+  }
+
+  const ua = navigator.userAgent;
+
+  // Phone / Mobile Browsers
+  if (/Android/i.test(ua)) {
+    return { name: 'Android Browser', platform: 'android' };
+  }
+  if (/iPhone|iPad|iPod/i.test(ua)) {
+    return { name: 'iOS Mobile Browser', platform: 'android' };
+  }
+
+  // PC Desktop Browsers
+  let browserName = 'Web Browser';
+  if (ua.includes('Firefox')) browserName = 'Firefox';
+  else if (ua.includes('Edg')) browserName = 'Edge';
+  else if (ua.includes('Chrome')) browserName = 'Chrome';
+  else if (ua.includes('Safari')) browserName = 'Safari';
+
+  if (/Windows/i.test(ua)) {
+    return { name: `Windows PC (${browserName})`, platform: 'windows' };
+  }
+  if (/Macintosh|Mac OS X/i.test(ua)) {
+    return { name: `Mac PC (${browserName})`, platform: 'web' };
+  }
+  if (/Linux/i.test(ua)) {
+    return { name: `Linux PC (${browserName})`, platform: 'linux' };
+  }
+
+  const isMobile = /Mobi|Android/i.test(ua);
+  return {
+    name: isMobile ? `Mobile Browser (${browserName})` : `PC Browser (${browserName})`,
+    platform: isMobile ? 'android' : 'web',
+  };
+};
+
+const getInitialCurrentDevice = (): Device => {
+  const { name, platform } = detectDeviceFromUA();
   return {
     id: `dev-${Math.random().toString(36).substring(2, 9)}`,
-    name: isTauri ? 'Linux Workstation (Tauri Desktop)' : 'Web Browser Device',
-    platform: isTauri ? 'linux' : 'web',
+    name,
+    platform,
     status: 'online',
     ipAddress: 'Mendeteksi...',
     isCurrentDevice: true,
@@ -126,27 +173,21 @@ export const useHoppStore = create<HoppState>()(
         activeTab: 'all',
         searchQuery: '',
         isOtherTabActive: false,
+        isDeviceListOpen: false,
         isPairingModalOpen: false,
         isSettingsModalOpen: false,
         isOnboardingOpen: false,
+        isE2EEModalOpen: false,
         activeToast: null,
         isWsConnected: false,
 
         initRealtimeSync: () => {
-          const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-          const getBrowserName = () => {
-            const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-            if (ua.includes('Firefox')) return 'Firefox Browser';
-            if (ua.includes('Edg')) return 'Edge Browser';
-            if (ua.includes('Chrome')) return 'Chrome Browser';
-            if (ua.includes('Safari')) return 'Safari Browser';
-            return 'Web Browser';
-          };
+          const { name, platform } = detectDeviceFromUA();
 
           const freshCurrentDevice: Device = {
             id: get().currentDevice?.id || `dev-${Math.random().toString(36).substring(2, 9)}`,
-            name: isTauri ? 'Linux Workstation (Tauri Desktop)' : getBrowserName(),
-            platform: isTauri ? 'linux' : 'web',
+            name,
+            platform,
             status: 'online',
             ipAddress: get().currentDevice?.ipAddress || 'Mendeteksi...',
             isCurrentDevice: true,
@@ -496,6 +537,8 @@ export const useHoppStore = create<HoppState>()(
         setPairingModalOpen: (open) => set({ isPairingModalOpen: open }),
         setSettingsModalOpen: (open) => set({ isSettingsModalOpen: open }),
         setOnboardingOpen: (open) => set({ isOnboardingOpen: open }),
+        setDeviceListOpen: (open) => set({ isDeviceListOpen: open }),
+        setE2EEModalOpen: (open) => set({ isE2EEModalOpen: open }),
 
         showToast: (msg) => {
           set({ activeToast: msg });

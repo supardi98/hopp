@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Terminal, Monitor, Smartphone, Globe, Plus, Trash2, CheckCircle2, Info, X, ShieldCheck, Activity } from 'lucide-react';
+import { Terminal, Monitor, Smartphone, Globe, Plus, CheckCircle2, Info, X, ShieldCheck, Activity } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 import { WSLogModal } from './WSLogModal';
 import type { Device, PlatformType } from '../types';
 
 export const DeviceList: React.FC = () => {
-  const { pairedDevices, removeDevice, setPairingModalOpen, settings, isWsConnected } = useHoppStore();
+  const { pairedDevices, setPairingModalOpen, settings, isWsConnected, setDeviceListOpen } = useHoppStore();
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [isLogModalOpen, setLogModalOpen] = useState(false);
 
@@ -50,14 +50,23 @@ export const DeviceList: React.FC = () => {
     <>
       <div className="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800/80 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <h2 className="text-base font-semibold text-slate-100 flex items-center space-x-2">
-              <span>Peranti Terhubung</span>
-              <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-slate-800 text-indigo-400 border border-slate-700">
-                {pairedDevices.length}
-              </span>
-            </h2>
-            <p className="text-xs text-slate-400">Klik kartu peranti untuk melihat detail koneksi</p>
+          <div className="flex items-center justify-between w-full lg:w-auto">
+            <div>
+              <h2 className="text-sm font-bold text-slate-100 flex items-center space-x-2">
+                <span>Peranti Terhubung</span>
+                <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-slate-800 text-indigo-400 border border-slate-700">
+                  {pairedDevices.length}
+                </span>
+              </h2>
+              <p className="text-xs text-slate-400">Klik kartu peranti untuk melihat detail koneksi</p>
+            </div>
+            {/* Close button — mobile only */}
+            <button
+              onClick={() => setDeviceListOpen(false)}
+              className="lg:hidden p-1.5 text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 rounded-lg border border-slate-700/50 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -131,17 +140,6 @@ export const DeviceList: React.FC = () => {
                     <Info className="w-4 h-4" />
                   </button>
 
-                  {!device.isCurrentDevice && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeDevice(device.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
