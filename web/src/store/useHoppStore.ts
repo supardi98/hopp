@@ -7,6 +7,7 @@ import { wsClient, getEffectiveRelayUrl } from '../lib/wsClient';
 import { writeSystemClipboard } from '../lib/nativeClipboard';
 import { savePayloadToDB, deletePayloadFromDB, clearAllPayloadsDB } from '../utils/storageDB';
 import { webrtcManager } from '../lib/webrtcClient';
+import { playNotificationChime } from '../utils/sound';
 
 // Unique Tab Instance ID per browser window/tab
 const TAB_INSTANCE_ID = `tab-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
@@ -60,6 +61,16 @@ interface HoppState {
   removeDevice: (deviceId: string) => void;
   simulateSimultaneousPaste: () => void;
 }
+
+const isLocalLanIp = (ip?: string): boolean => {
+  if (!ip) return true;
+  const clean = ip.trim().replace(/^::ffff:/i, '');
+  if (clean === '127.0.0.1' || clean === '::1' || clean === 'localhost') return true;
+  if (/^192\.168\./.test(clean)) return true;
+  if (/^10\./.test(clean)) return true;
+  if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(clean)) return true;
+  return false;
+};
 
 const detectContentType = (text: string): ContentType => {
   const trimmed = text.trim();
@@ -475,6 +486,15 @@ export const useHoppStore = create<HoppState>()(
           // Ignore items from different room code if specified
           if (newItem.roomCode && newItem.roomCode !== settings.roomCode) return;
 
+          // If LAN-Only mode is enabled, filter out items from non-LAN IP addresses
+          if (settings.lanSyncOnly) {
+            const senderDev = get().pairedDevices.find((d) => d.id === newItem.senderDeviceId);
+            if (senderDev && senderDev.ipAddress && !isLocalLanIp(senderDev.ipAddress)) {
+              console.warn('[LAN Only] Broadcast item ignored from non-LAN sender IP:', senderDev.ipAddress);
+              return;
+            }
+          }
+
           let processedItem = { ...newItem };
           if (newItem.encryptedContent && settings.enabled) {
             const decrypted = await decryptContent(newItem.encryptedContent, settings.secretKey, settings.roomCode);
@@ -518,7 +538,10 @@ export const useHoppStore = create<HoppState>()(
             }
           }
 
-          get().showToast(`Clipboard tersinkron dari ${processedItem.senderDeviceName}!`);
+          if (settings.soundAlert) {
+            playNotificationChime();
+            get().showToast(`Clipboard tersinkron dari ${processedItem.senderDeviceName}!`);
+          }
         },
 
         receiveRoomHistory: async (incomingItems, roomCode) => {
