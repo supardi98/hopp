@@ -53,7 +53,7 @@ export const PairingModal: React.FC = () => {
               <QrCode className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-100">Hubungkan Peranti Baru</h2>
+              <h2 className="text-base font-bold text-slate-100">Hubungkan Device Baru</h2>
               <p className="text-xs text-slate-400">Scan QR atau salin link pairing untuk koneksi instant</p>
             </div>
           </div>
@@ -78,7 +78,7 @@ export const PairingModal: React.FC = () => {
               />
             </div>
             <p className="text-[11px] text-slate-400 text-center leading-relaxed max-w-xs">
-              Pindai Kode QR di atas menggunakan kamera HP / Peranti lain untuk bergabung otomatis.
+              Pindai Kode QR di atas menggunakan kamera HP / Device lain untuk bergabung otomatis.
             </p>
           </div>
 

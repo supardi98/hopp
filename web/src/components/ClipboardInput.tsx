@@ -93,7 +93,7 @@ export const ClipboardInput: React.FC = () => {
           <div className="flex items-center space-x-1.5 sm:space-x-2">
             <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
             <span className="text-[11px] sm:text-xs font-semibold text-slate-200 uppercase tracking-wider">
-              Kirim ke Peranti (Teks, Gambar & File)
+              Kirim ke Device (Teks, Gambar & File)
             </span>
           </div>
 

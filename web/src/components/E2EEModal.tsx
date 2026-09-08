@@ -40,8 +40,8 @@ export const E2EEModal: React.FC = () => {
           {[
             {
               icon: <Cpu className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />,
-              title: 'Enkripsi di Peranti',
-              desc: 'Teks, gambar & file di-enkripsi menggunakan AES-256-GCM sebelum meninggalkan peranti Anda.',
+              title: 'Enkripsi di Device',
+              desc: 'Teks, gambar & file di-enkripsi menggunakan AES-256-GCM sebelum meninggalkan device Anda.',
             },
             {
               icon: <Server className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />,

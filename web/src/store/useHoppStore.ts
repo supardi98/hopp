@@ -693,7 +693,7 @@ export const useHoppStore = create<HoppState>()(
             pairedDevices: [...state.pairedDevices, newDev],
             isPairingModalOpen: false,
           }));
-          get().showToast(`Peranti '${newDev.name}' terhubung!`);
+          get().showToast(`Device '${newDev.name}' terhubung!`);
         },
 
         leaveRoom: () => {
@@ -730,7 +730,7 @@ export const useHoppStore = create<HoppState>()(
           set((state) => ({
             pairedDevices: state.pairedDevices.filter((d) => d.id !== deviceId),
           }));
-          get().showToast('Peranti diputus koneksinya');
+          get().showToast('Device diputus koneksinya');
         },
 
         simulateSimultaneousPaste: () => {

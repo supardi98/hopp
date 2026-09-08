@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Wifi, Laptop, Smartphone, Plus, Settings, KeyRound } from 'lucide-react';
+import { ShieldCheck, Plus, Settings, KeyRound, RefreshCw } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 
 export const Header: React.FC = () => {
@@ -72,12 +72,6 @@ export const Header: React.FC = () => {
             <span>Room: {settings.roomCode || 'Belum Set'}</span>
           </div>
 
-          {/* LAN P2P */}
-          <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium shrink-0 text-xs">
-            <Wifi className="w-3.5 h-3.5 shrink-0" />
-            <span>LAN P2P</span>
-          </div>
-
           {/* E2EE — opens E2EEModal */}
           <button
             onClick={() => setE2EEModalOpen(true)}
@@ -92,11 +86,8 @@ export const Header: React.FC = () => {
             onClick={() => setDeviceListOpen(true)}
             className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/60 text-slate-300 font-medium shrink-0 text-xs hover:bg-slate-800 transition-colors"
           >
-            <div className="flex -space-x-1">
-              <Laptop className="w-3.5 h-3.5 text-indigo-400" />
-              <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
-            </div>
-            <span>{onlineCount} Peranti</span>
+            <RefreshCw className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span>{onlineCount} Device</span>
           </button>
         </div>
 
@@ -107,7 +98,7 @@ export const Header: React.FC = () => {
             className="flex items-center space-x-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-lg border border-indigo-400/30 transition-all hover:scale-[1.02]"
           >
             <Plus className="w-4 h-4" />
-            <span>Hubungkan Peranti</span>
+            <span>Hubungkan Device</span>
           </button>
           <button
             onClick={() => setSettingsModalOpen(true)}

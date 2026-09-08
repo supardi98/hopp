@@ -94,9 +94,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
       console.error('Camera access error:', err);
       setIsScanning(false);
 
-      let msg = `Gagal membuka kamera: ${err?.message || 'Peranti kamera tidak tersedia'}`;
+      let msg = `Gagal membuka kamera: ${err?.message || 'Device kamera tidak tersedia'}`;
       if (err?.name === 'NotFoundError' || err?.name === 'DevicesNotFoundError') {
-        msg = 'Kamera tidak ditemukan pada peranti ini. Gunakan fitur Unggah Foto QR.';
+        msg = 'Kamera tidak ditemukan pada device ini. Gunakan fitur Unggah Foto QR.';
       } else if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
         msg = 'Izin akses kamera ditolak. Silakan berikan izin kamera pada browser Anda.';
       } else if (err?.name === 'NotReadableError' || err?.name === 'TrackStartError') {
@@ -250,10 +250,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
           </h2>
           <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
             {mode === 'join'
-              ? 'Masukkan Kode Sync atau pindai QR Code peranti asal untuk bergabung.'
+              ? 'Masukkan Kode Sync atau pindai QR Code device asal untuk bergabung.'
               : settings.isRoomSet
               ? `Saat ini Anda berada di Room '${settings.roomCode}'. Buat room baru atau pindah ke Kode Sync lain.`
-              : 'Hubungkan peranti Anda (Web, Desktop Linux/Windows, & Android) dalam satu Room Sync tanpa perlu membuat akun / login!'}
+              : 'Hubungkan device Anda (Web, Desktop Linux/Windows, & Android) dalam satu Room Sync tanpa perlu membuat akun / login!'}
           </p>
         </div>
 
@@ -318,7 +318,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
                       Gabung ke Kode Sync Yang Ada
                     </h3>
                     <p className="text-[11px] sm:text-xs text-slate-400 leading-snug">
-                      Sudah punya Kode Sync dari peranti lain? Masukkan di sini / scan QR.
+                      Sudah punya Kode Sync dari device lain? Masukkan di sini / scan QR.
                     </p>
                   </div>
                 </div>
@@ -390,7 +390,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-300 flex items-center space-x-1.5">
                   <Camera className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Pindai QR Code Peranti Asal</span>
+                  <span>Pindai QR Code Device Asal</span>
                 </span>
                 <input
                   type="file"
@@ -484,7 +484,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
                   className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl font-mono text-xs text-purple-300 placeholder-slate-600 focus:outline-none focus:border-purple-500"
                 />
                 <p className="text-[11px] text-slate-500 leading-snug">
-                  Disalin dari peranti asal (menu <i>Hubungkan Peranti</i>) jika room menggunakan enkripsi AES-256.
+                  Disalin dari device asal (menu <i>Hubungkan Device</i>) jika room menggunakan enkripsi AES-256.
                 </p>
               </div>
             </div>

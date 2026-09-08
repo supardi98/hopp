@@ -54,12 +54,12 @@ export const DeviceList: React.FC = () => {
           <div className="flex items-center justify-between w-full lg:w-auto">
             <div>
               <h2 className="text-sm font-bold text-slate-100 flex items-center space-x-2">
-                <span>Peranti Terhubung</span>
+                <span>Device Terhubung</span>
                 <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-slate-800 text-indigo-400 border border-slate-700">
                   {pairedDevices.length}
                 </span>
               </h2>
-              <p className="text-xs text-slate-400">Klik kartu peranti untuk melihat detail koneksi</p>
+              <p className="text-xs text-slate-400">Klik kartu device untuk melihat detail koneksi</p>
             </div>
             {/* Close button — mobile only */}
             <button
@@ -117,7 +117,7 @@ export const DeviceList: React.FC = () => {
                         {device.isCurrentDevice && (
                           <span className="shrink-0 flex items-center space-x-1 text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
                             <CheckCircle2 className="w-3 h-3" />
-                            <span>Peranti Ini</span>
+                            <span>Device Ini</span>
                           </span>
                         )}
                         {!device.isCurrentDevice && isP2pConnected && (
@@ -202,7 +202,7 @@ export const DeviceList: React.FC = () => {
                 {selectedDevice.isCurrentDevice ? (
                   <span className="font-semibold text-emerald-400 flex items-center space-x-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Lokal Peranti Ini</span>
+                    <span>Lokal Device Ini</span>
                   </span>
                 ) : activeP2pPeers.includes(selectedDevice.id) || webrtcManager.getActivePeerIds().includes(selectedDevice.id) ? (
                   <span className="font-semibold text-emerald-400 flex items-center space-x-1.5">

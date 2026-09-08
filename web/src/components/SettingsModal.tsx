@@ -78,7 +78,7 @@ export const SettingsModal: React.FC = () => {
             )}
 
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              Semua teks clipboard dienkripsi di peranti sebelum dikirim ke peranti lain. Peranti tanpa Secret Key yang sama tidak bisa membaca teks.
+              Semua teks clipboard dienkripsi di device sebelum dikirim ke device lain. Device tanpa Secret Key yang sama tidak bisa membaca teks.
             </p>
 
             <div className="pt-2">
@@ -112,7 +112,7 @@ export const SettingsModal: React.FC = () => {
                 </button>
               </div>
               <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
-                Anda bisa mengetik/mengubah Secret Key secara manual atau menyalinnya ke peranti lain. Semua peranti dalam room yang sama harus memakai Secret Key yang sama.
+                Anda bisa mengetik/mengubah Secret Key secara manual atau menyalinnya ke device lain. Semua device dalam room yang sama harus memakai Secret Key yang sama.
               </p>
             </div>
           </div>
@@ -160,7 +160,7 @@ export const SettingsModal: React.FC = () => {
           <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
             <div className="flex items-center justify-between pb-1 border-b border-slate-800/60">
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-400">
-                Pengaturan Lokal Peranti Ini (Per-Device Settings)
+                Pengaturan Lokal Device Ini (Per-Device Settings)
               </span>
             </div>
 
@@ -209,7 +209,7 @@ export const SettingsModal: React.FC = () => {
             <div className="flex items-center justify-between border-t border-slate-800/60 pt-3 gap-2">
               <div>
                 <span className="text-xs font-semibold text-slate-200">Mode Jaringan Lokal (LAN Only)</span>
-                <p className="text-[11px] text-slate-400">Hanya sinkronkan peranti di Wi-Fi yang sama (mDNS)</p>
+                <p className="text-[11px] text-slate-400">Hanya sinkronkan device di Wi-Fi yang sama (mDNS)</p>
               </div>
               <input
                 type="checkbox"

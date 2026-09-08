@@ -100,7 +100,7 @@ export const ClipboardFeed: React.FC = () => {
             </div>
             <h3 className="text-sm font-semibold text-slate-200">Belum Ada Item Clipboard</h3>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              Salin teks/link/gambar di komputer/HP Anda atau gunakan tombol Upload File di atas untuk menyinkronkan data antar peranti.
+              Salin teks/link/gambar di komputer/HP Anda atau gunakan tombol Upload File di atas untuk menyinkronkan data antar device.
             </p>
           </div>
         )}
@@ -128,7 +128,7 @@ export const ClipboardFeed: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
-              Tindakan ini akan menghapus **seluruh {items.length} item clipboard & file** di peranti ini dan memicu pembersihan riwayat di room server.
+              Tindakan ini akan menghapus **seluruh {items.length} item clipboard & file** di device ini dan memicu pembersihan riwayat di room server.
             </p>
 
             <div className="flex items-center justify-end space-x-3 pt-2">

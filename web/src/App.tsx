@@ -232,7 +232,7 @@ export function App() {
                 </div>
 
                 <p className="text-[11px] text-slate-400 leading-snug">
-                  Klik tombol di bawah untuk menyetujui dan menghubungkan peranti ini ke Room <span className="font-mono text-indigo-300">{pendingJoin.roomCode}</span>.
+                  Klik tombol di bawah untuk menyetujui dan menghubungkan device ini ke Room <span className="font-mono text-indigo-300">{pendingJoin.roomCode}</span>.
                 </p>
 
                 {/* Action Buttons */}

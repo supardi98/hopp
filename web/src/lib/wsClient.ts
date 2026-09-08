@@ -136,7 +136,7 @@ class RealtimeWSClient {
             device: currentDevice,
             roomCode: roomCode || '',
           });
-          this.addLog('send', `Mengirim REGISTER_DEVICE`, `Peranti: ${currentDevice.name} | Room: '${roomCode || 'Belum Set'}'`);
+          this.addLog('send', `Mengirim REGISTER_DEVICE`, `Device: ${currentDevice.name} | Room: '${roomCode || 'Belum Set'}'`);
         }
       };
 
