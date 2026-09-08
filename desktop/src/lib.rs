@@ -176,23 +176,156 @@ fn execute_remote_input(action: String, dx: i32, dy: i32, text: String, key: Str
             run_cmd("xdotool", &["key", "Tab"]);
           }
         }
-        "Escape" | "Esc" => {
-          if has_ydotool {
-            run_cmd("ydotool", &["key", "1:1", "1:0"]);
-          }
-          if has_wtype {
-            run_cmd("wtype", &["-k", "Escape"]);
-          }
-          if has_xdotool {
-            run_cmd("xdotool", &["key", "Escape"]);
-          }
+        "Ctrl_down" | "ctrl_down" => {
+          if has_wtype { run_cmd("wtype", &["-M", "ctrl"]); }
+          if has_xdotool { run_cmd("xdotool", &["keydown", "Control_L"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "29:1"]); }
+        }
+        "Ctrl_up" | "ctrl_up" => {
+          if has_wtype { run_cmd("wtype", &["-m", "ctrl"]); }
+          if has_xdotool { run_cmd("xdotool", &["keyup", "Control_L"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "29:0"]); }
+        }
+        "Alt_down" | "alt_down" => {
+          if has_wtype { run_cmd("wtype", &["-M", "alt"]); }
+          if has_xdotool { run_cmd("xdotool", &["keydown", "Alt_L"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "56:1"]); }
+        }
+        "Alt_up" | "alt_up" => {
+          if has_wtype { run_cmd("wtype", &["-m", "alt"]); }
+          if has_xdotool { run_cmd("xdotool", &["keyup", "Alt_L"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "56:0"]); }
+        }
+        "Shift_down" | "shift_down" => {
+          if has_wtype { run_cmd("wtype", &["-M", "shift"]); }
+          if has_xdotool { run_cmd("xdotool", &["keydown", "Shift_L"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "42:1"]); }
+        }
+        "Shift_up" | "shift_up" => {
+          if has_wtype { run_cmd("wtype", &["-m", "shift"]); }
+          if has_xdotool { run_cmd("xdotool", &["keyup", "Shift_L"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "42:0"]); }
+        }
+        "Win_down" | "win_down" | "Super_down" => {
+          if has_wtype { run_cmd("wtype", &["-M", "logo"]); }
+          if has_xdotool { run_cmd("xdotool", &["keydown", "Super_L"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "125:1"]); }
+        }
+        "Win_up" | "win_up" | "Super_up" => {
+          if has_wtype { run_cmd("wtype", &["-m", "logo"]); }
+          if has_xdotool { run_cmd("xdotool", &["keyup", "Super_L"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "125:0"]); }
+        }
+        "Ctrl+c" | "ctrl+c" | "Ctrl+C" => {
+          if has_wtype { run_cmd("wtype", &["-M", "ctrl", "-k", "c", "-m", "ctrl"]); }
+          if has_xdotool { run_cmd("xdotool", &["key", "ctrl+c"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "29:1", "46:1", "46:0", "29:0"]); }
+        }
+        "Ctrl+v" | "ctrl+v" | "Ctrl+V" => {
+          if has_wtype { run_cmd("wtype", &["-M", "ctrl", "-k", "v", "-m", "ctrl"]); }
+          if has_xdotool { run_cmd("xdotool", &["key", "ctrl+v"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "29:1", "47:1", "47:0", "29:0"]); }
+        }
+        "Ctrl+a" | "ctrl+a" | "Ctrl+A" => {
+          if has_wtype { run_cmd("wtype", &["-M", "ctrl", "-k", "a", "-m", "ctrl"]); }
+          if has_xdotool { run_cmd("xdotool", &["key", "ctrl+a"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "29:1", "30:1", "30:0", "29:0"]); }
+        }
+        "Ctrl+z" | "ctrl+z" | "Ctrl+Z" => {
+          if has_wtype { run_cmd("wtype", &["-M", "ctrl", "-k", "z", "-m", "ctrl"]); }
+          if has_xdotool { run_cmd("xdotool", &["key", "ctrl+z"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "29:1", "44:1", "44:0", "29:0"]); }
+        }
+        "Ctrl+x" | "ctrl+x" | "Ctrl+X" => {
+          if has_wtype { run_cmd("wtype", &["-M", "ctrl", "-k", "x", "-m", "ctrl"]); }
+          if has_xdotool { run_cmd("xdotool", &["key", "ctrl+x"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "29:1", "45:1", "45:0", "29:0"]); }
+        }
+        "Alt+Tab" | "alt+tab" => {
+          if has_wtype { run_cmd("wtype", &["-M", "alt", "-k", "Tab", "-m", "alt"]); }
+          if has_xdotool { run_cmd("xdotool", &["key", "alt+Tab"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "56:1", "15:1", "15:0", "56:0"]); }
+        }
+        "Super" | "Win" | "Super_L" => {
+          if has_wtype { run_cmd("wtype", &["-k", "Super_L"]); }
+          if has_xdotool { run_cmd("xdotool", &["key", "Super_L"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "125:1", "125:0"]); }
+        }
+        "Up" | "ArrowUp" => {
+          if has_wtype { run_cmd("wtype", &["-k", "Up"]); }
+          if has_xdotool { run_cmd("xdotool", &["key", "Up"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "103:1", "103:0"]); }
+        }
+        "Down" | "ArrowDown" => {
+          if has_wtype { run_cmd("wtype", &["-k", "Down"]); }
+          if has_xdotool { run_cmd("xdotool", &["key", "Down"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "108:1", "108:0"]); }
+        }
+        "Left" | "ArrowLeft" => {
+          if has_wtype { run_cmd("wtype", &["-k", "Left"]); }
+          if has_xdotool { run_cmd("xdotool", &["key", "Left"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "105:1", "105:0"]); }
+        }
+        "Right" | "ArrowRight" => {
+          if has_wtype { run_cmd("wtype", &["-k", "Right"]); }
+          if has_xdotool { run_cmd("xdotool", &["key", "Right"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "106:1", "106:0"]); }
+        }
+        "Delete" | "Del" => {
+          if has_wtype { run_cmd("wtype", &["-k", "Delete"]); }
+          if has_xdotool { run_cmd("xdotool", &["key", "Delete"]); }
+          if has_ydotool { run_cmd("ydotool", &["key", "111:1", "111:0"]); }
         }
         _ => {
-          if has_wtype {
-            run_cmd("wtype", &["-k", &key]);
-          }
-          if has_xdotool {
-            run_cmd("xdotool", &["key", &key]);
+          let has_plus = key.contains('+');
+          if has_plus {
+            let parts: Vec<&str> = key.split('+').collect();
+            let mut wtype_args: Vec<&str> = Vec::new();
+
+            for p in &parts[..parts.len() - 1] {
+              let p_lower = p.to_lowercase();
+              let mod_name = match p_lower.as_str() {
+                "ctrl" | "control" => "ctrl",
+                "alt" => "alt",
+                "shift" => "shift",
+                "win" | "super" => "logo",
+                _ => p,
+              };
+              wtype_args.push("-M");
+              wtype_args.push(mod_name);
+            }
+
+            let main_key = parts[parts.len() - 1];
+            wtype_args.push("-k");
+            wtype_args.push(main_key);
+
+            for p in (&parts[..parts.len() - 1]).iter().rev() {
+              let p_lower = p.to_lowercase();
+              let mod_name = match p_lower.as_str() {
+                "ctrl" | "control" => "ctrl",
+                "alt" => "alt",
+                "shift" => "shift",
+                "win" | "super" => "logo",
+                _ => p,
+              };
+              wtype_args.push("-m");
+              wtype_args.push(mod_name);
+            }
+
+            if has_wtype {
+              run_cmd("wtype", &wtype_args);
+            }
+            if has_xdotool {
+              let xdo_key = key.to_lowercase();
+              run_cmd("xdotool", &["key", &xdo_key]);
+            }
+          } else {
+            if has_wtype {
+              run_cmd("wtype", &["-k", &key]);
+            }
+            if has_xdotool {
+              run_cmd("xdotool", &["key", &key]);
+            }
           }
         }
       }
@@ -209,6 +342,12 @@ fn execute_remote_input(action: String, dx: i32, dy: i32, text: String, key: Str
         }
         "left_click" => {
           run_cmd("ydotool", &["click", "0xC0"]);
+        }
+        "left_down" => {
+          run_cmd("ydotool", &["click", "0x40"]);
+        }
+        "left_up" => {
+          run_cmd("ydotool", &["click", "0x80"]);
         }
         "right_click" => {
           run_cmd("ydotool", &["click", "0xC1"]);
@@ -243,6 +382,12 @@ fn execute_remote_input(action: String, dx: i32, dy: i32, text: String, key: Str
         }
         "left_click" => {
           run_cmd("xdotool", &["click", "1"]);
+        }
+        "left_down" => {
+          run_cmd("xdotool", &["mousedown", "1"]);
+        }
+        "left_up" => {
+          run_cmd("xdotool", &["mouseup", "1"]);
         }
         "right_click" => {
           run_cmd("xdotool", &["click", "3"]);
@@ -282,6 +427,16 @@ fn execute_remote_input(action: String, dx: i32, dy: i32, text: String, key: Str
       "left_click" => {
         let _ = std::process::Command::new("powershell")
           .args(["-NoProfile", "-NonInteractive", "-Command", "$w=Add-Type -name W -member '[DllImport(\"user32.dll\")] public static extern void mouse_event(int f,int x,int y,int d,int i);' -pass; $w::mouse_event(6,0,0,0,0)"])
+          .output();
+      }
+      "left_down" => {
+        let _ = std::process::Command::new("powershell")
+          .args(["-NoProfile", "-NonInteractive", "-Command", "$w=Add-Type -name W -member '[DllImport(\"user32.dll\")] public static extern void mouse_event(int f,int x,int y,int d,int i);' -pass; $w::mouse_event(2,0,0,0,0)"])
+          .output();
+      }
+      "left_up" => {
+        let _ = std::process::Command::new("powershell")
+          .args(["-NoProfile", "-NonInteractive", "-Command", "$w=Add-Type -name W -member '[DllImport(\"user32.dll\")] public static extern void mouse_event(int f,int x,int y,int d,int i);' -pass; $w::mouse_event(4,0,0,0,0)"])
           .output();
       }
       "right_click" => {
