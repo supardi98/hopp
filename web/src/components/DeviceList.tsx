@@ -152,10 +152,9 @@ export const DeviceList: React.FC = () => {
                           e.stopPropagation();
                           setTouchpadDevice(device);
                         }}
-                        className="flex items-center space-x-1 px-2 py-1 text-xs font-bold text-indigo-300 hover:text-white bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-700/50 rounded-lg transition-all"
+                        className="p-1.5 text-indigo-300 hover:text-white bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-700/50 rounded-lg transition-all cursor-pointer"
                       >
-                        <Gamepad2 className="w-3.5 h-3.5 text-indigo-400" />
-                        <span className="hidden sm:inline">Remote</span>
+                        <Gamepad2 className="w-4 h-4 text-indigo-400" />
                       </button>
                     )}
 

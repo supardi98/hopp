@@ -32,6 +32,7 @@ class WebRTCManager {
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
     ],
+    iceCandidatePoolSize: 10,
   };
 
   public isSupported(): boolean {
@@ -87,7 +88,17 @@ class WebRTCManager {
 
   public initiateConnection(targetDeviceId: string) {
     if (!this.enabled || !this.isSupported() || !targetDeviceId || targetDeviceId === this.currentDeviceId) return;
-    if (this.peerConnections.has(targetDeviceId)) return;
+    
+    const existingPc = this.peerConnections.get(targetDeviceId);
+    if (existingPc) {
+      if (existingPc.connectionState === 'failed' || existingPc.connectionState === 'closed' || existingPc.iceConnectionState === 'failed' || existingPc.iceConnectionState === 'closed') {
+        existingPc.close();
+        this.peerConnections.delete(targetDeviceId);
+        this.dataChannels.delete(targetDeviceId);
+      } else {
+        return;
+      }
+    }
 
     // Deterministic Initiator: Only the peer with larger ID initiates offer to prevent glare race condition
     if (this.currentDeviceId <= targetDeviceId) return;
@@ -96,18 +107,25 @@ class WebRTCManager {
       const pc = new RTCPeerConnection(this.iceConfig);
       this.peerConnections.set(targetDeviceId, pc);
 
+      this.attachConnectionListeners(pc, targetDeviceId);
+
       const channel = pc.createDataChannel('hopp-p2p', { ordered: true });
       this.setupDataChannel(targetDeviceId, channel);
 
       pc.onicecandidate = (event) => {
         if (event.candidate && this.signalSender) {
+          const candJson = {
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid ?? '0',
+            sdpMLineIndex: event.candidate.sdpMLineIndex ?? 0,
+          };
           this.signalSender({
             type: 'WEBRTC_SIGNAL',
             senderDeviceId: this.currentDeviceId,
             targetDeviceId,
             signal: {
               type: 'candidate',
-              candidate: event.candidate.toJSON(),
+              candidate: candJson,
             },
             roomCode: this.currentRoomCode,
           });
@@ -134,17 +152,51 @@ class WebRTCManager {
     }
   }
 
+  private attachConnectionListeners(pc: RTCPeerConnection, targetDeviceId: string) {
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+        this.cleanupPeer(targetDeviceId, pc);
+      }
+    };
+    pc.oniceconnectionstatechange = () => {
+      if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'closed') {
+        this.cleanupPeer(targetDeviceId, pc);
+      }
+    };
+  }
+
+  private cleanupPeer(targetDeviceId: string, pc: RTCPeerConnection) {
+    if (this.peerConnections.get(targetDeviceId) === pc) {
+      pc.close();
+      this.peerConnections.delete(targetDeviceId);
+      const channel = this.dataChannels.get(targetDeviceId);
+      if (channel) {
+        channel.close();
+        this.dataChannels.delete(targetDeviceId);
+      }
+      this.notifyStatusChange();
+    }
+  }
+
   public async handleSignal(data: WebRTCSignalData) {
     if (!this.enabled || !this.isSupported()) return;
-    const { senderDeviceId, signal } = data;
+    const { senderDeviceId, targetDeviceId, signal } = data;
     if (!senderDeviceId || senderDeviceId === this.currentDeviceId) return;
+    if (targetDeviceId && targetDeviceId !== this.currentDeviceId) return;
 
     try {
       if (signal.type === 'offer') {
         let pc = this.peerConnections.get(senderDeviceId);
+        if (pc && (pc.connectionState === 'closed' || pc.connectionState === 'failed' || pc.iceConnectionState === 'failed' || pc.signalingState === 'have-local-offer')) {
+          pc.close();
+          this.peerConnections.delete(senderDeviceId);
+          pc = undefined;
+        }
+
         if (!pc) {
           pc = new RTCPeerConnection(this.iceConfig);
           this.peerConnections.set(senderDeviceId, pc);
+          this.attachConnectionListeners(pc, senderDeviceId);
         }
 
         pc.ondatachannel = (event) => {
@@ -153,20 +205,30 @@ class WebRTCManager {
 
         pc.onicecandidate = (event) => {
           if (event.candidate && this.signalSender) {
+            const candJson = {
+              candidate: event.candidate.candidate,
+              sdpMid: event.candidate.sdpMid ?? '0',
+              sdpMLineIndex: event.candidate.sdpMLineIndex ?? 0,
+            };
             this.signalSender({
               type: 'WEBRTC_SIGNAL',
               senderDeviceId: this.currentDeviceId,
               targetDeviceId: senderDeviceId,
               signal: {
                 type: 'candidate',
-                candidate: event.candidate.toJSON(),
+                candidate: candJson,
               },
               roomCode: this.currentRoomCode,
             });
           }
         };
 
-        await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
+        } catch (err: any) {
+          if (err?.name === 'InvalidStateError') return;
+          throw err;
+        }
         
         // Process buffered candidates for this peer
         const pending = this.pendingCandidates.get(senderDeviceId) || [];
@@ -192,14 +254,24 @@ class WebRTCManager {
         }
       } else if (signal.type === 'answer') {
         const pc = this.peerConnections.get(senderDeviceId);
-        if (pc && pc.signalingState !== 'stable') {
-          await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
-          
-          const pending = this.pendingCandidates.get(senderDeviceId) || [];
-          for (const cand of pending) {
-            await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+        if (pc) {
+          if (pc.signalingState === 'have-local-offer') {
+            try {
+              await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
+              
+              const pending = this.pendingCandidates.get(senderDeviceId) || [];
+              for (const cand of pending) {
+                await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+              }
+              this.pendingCandidates.delete(senderDeviceId);
+            } catch (err: any) {
+              // Duplicate or late answer signal when peer is already stable is harmless in WebRTC
+              if (err?.name === 'InvalidStateError' || (pc.signalingState as string) === 'stable') {
+                return;
+              }
+              console.warn('[WebRTC P2P] Answer error:', err);
+            }
           }
-          this.pendingCandidates.delete(senderDeviceId);
         }
       } else if (signal.type === 'candidate') {
         const pc = this.peerConnections.get(senderDeviceId);

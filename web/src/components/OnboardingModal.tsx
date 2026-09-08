@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, ArrowRight, KeyRound, Sparkles, X, Copy, Check, LogOut, Camera, Upload, AlertTriangle } from 'lucide-react';
+import { Plus, ArrowRight, KeyRound, Sparkles, X, Copy, Check, LogOut, Camera, Upload, AlertTriangle, Link2 } from 'lucide-react';
 import { useHoppStore } from '../store/useHoppStore';
 import { generateRoomCode } from '../lib/crypto';
 import { writeSystemClipboard } from '../lib/nativeClipboard';
+import { parsePairingUrlOrCode } from '../utils/parsePairing';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -13,7 +14,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
   const { settings, updateSettings, showToast, initRealtimeSync, leaveRoom, setPairingModalOpen } = useHoppStore();
   const [mode, setMode] = useState<'choose' | 'join'>('choose');
   const [inputCode, setInputCode] = useState('');
-  const [inputSecretKey, setInputSecretKey] = useState('');
   const [copied, setCopied] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [confirmCreateNew, setConfirmCreateNew] = useState(false);
@@ -28,37 +28,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
     if (!val) return;
     stopCameraScan();
     setCameraError(null);
-
-    try {
-      if (val.includes('?') && (val.includes('room=') || val.includes('r='))) {
-        const urlObj = new URL(val);
-        const roomParam = urlObj.searchParams.get('room') || urlObj.searchParams.get('r');
-        const keyParam = urlObj.searchParams.get('key') || urlObj.searchParams.get('k');
-
-        if (roomParam) {
-          const formatted = roomParam.trim().toUpperCase().startsWith('HOPP-')
-            ? roomParam.trim().toUpperCase()
-            : `HOPP-${roomParam.trim().toUpperCase()}`;
-          setInputCode(formatted);
-          if (keyParam) {
-            const formattedKey = keyParam.trim().toUpperCase();
-            setInputSecretKey(formattedKey);
-            showToast(`QR Code dipindai! Room '${formatted}' & Kunci E2EE otomatis terisi.`);
-          } else {
-            showToast(`QR Code dipindai! Room: ${formatted}`);
-          }
-          return;
-        }
-      }
-
-      const cleaned = val.trim().toUpperCase();
-      const formattedRoom = cleaned.startsWith('HOPP-') ? cleaned : `HOPP-${cleaned}`;
-      setInputCode(formattedRoom);
-      showToast(`QR Code dipindai: ${formattedRoom}`);
-    } catch (err) {
-      const cleaned = val.trim().toUpperCase();
-      setInputCode(cleaned);
-      showToast(`QR Code dipindai: ${cleaned}`);
+    setInputCode(val);
+    const parsed = parsePairingUrlOrCode(val);
+    if (parsed.roomCode) {
+      showToast(`✨ QR Code dipindai: Room ${parsed.roomCode}`);
     }
   };
 
@@ -194,22 +167,21 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
 
   const handleJoinExistingRoom = (e: React.FormEvent) => {
     e.preventDefault();
-    const formatted = inputCode.trim().toUpperCase();
-    if (!formatted) return;
+    const parsed = parsePairingUrlOrCode(inputCode);
+    if (!parsed.roomCode) return;
 
-    const finalCode = formatted.startsWith('HOPP-') ? formatted : `HOPP-${formatted}`;
     const newSettings: Partial<import('../types').E2EESettings> = {
-      roomCode: finalCode,
+      roomCode: parsed.roomCode,
       isRoomSet: true,
     };
-    if (inputSecretKey.trim()) {
-      newSettings.secretKey = inputSecretKey.trim().toUpperCase();
+    if (parsed.secretKey) {
+      newSettings.secretKey = parsed.secretKey.toUpperCase();
       newSettings.enabled = true;
     }
 
     updateSettings(newSettings);
     initRealtimeSync();
-    showToast(`Berhasil bergabung ke Room '${finalCode}'!`);
+    showToast(`Berhasil bergabung ke Room '${parsed.roomCode}'!`);
     stopCameraScan();
     onClose();
   };
@@ -533,43 +505,29 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
             <div className="relative flex items-center justify-center py-2">
               <div className="border-t border-slate-800/80 w-full" />
               <span className="bg-slate-950 px-3 py-1 text-[10px] uppercase tracking-wider text-slate-400 font-bold shrink-0 rounded-full border border-slate-800 shadow-sm">
-                ATAU MASUKKAN KODE MANUAL
+                ATAU TEMPEL LINK
               </span>
               <div className="border-t border-slate-800/80 w-full" />
             </div>
 
-            {/* Manual Input Card Panel */}
-            <div className="space-y-3.5 p-3.5 sm:p-4 bg-slate-900/60 border border-slate-800 rounded-2xl">
+            {/* Manual / Link Input Card Panel */}
+            <div className="p-3.5 sm:p-4 bg-slate-900/60 border border-slate-800 rounded-2xl">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">
-                  Kode Sync Room (Wajib)
+                <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                  <span className="flex items-center space-x-1.5">
+                    <Link2 className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Link Pairing (Wajib)</span>
+                  </span>
                 </label>
                 <input
                   type="text"
                   value={inputCode}
                   onChange={(e) => setInputCode(e.target.value)}
-                  placeholder="Contoh: HOPP-89F1 atau 89F1"
+                  placeholder="Tempel Link (http://.../?room=...)"
                   autoFocus
                   required
-                  className="w-full px-4 py-2.5 bg-slate-950 border border-indigo-500/40 rounded-xl text-center font-mono text-base sm:text-lg tracking-widest text-indigo-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-4 py-2.5 bg-slate-950 border border-indigo-500/40 rounded-xl text-center font-mono text-xs sm:text-sm text-indigo-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500 truncate"
                 />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-                  <span>Pairing Secret Key (E2EE)</span>
-                  <span className="text-[10px] text-slate-500 font-normal">Opsional</span>
-                </label>
-                <input
-                  type="text"
-                  value={inputSecretKey}
-                  onChange={(e) => setInputSecretKey(e.target.value)}
-                  placeholder="Kosongkan jika room tidak memakai enkripsi"
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl font-mono text-xs text-purple-300 placeholder-slate-600 focus:outline-none focus:border-purple-500"
-                />
-                <p className="text-[11px] text-slate-500 leading-snug">
-                  Disalin dari device asal (menu <i>Hubungkan Device</i>) jika room menggunakan enkripsi AES-256.
-                </p>
               </div>
             </div>
 

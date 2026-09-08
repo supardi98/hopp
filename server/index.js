@@ -28,6 +28,16 @@ function sanitizeIp(ipRaw) {
   return str || '127.0.0.1';
 }
 
+function safeSend(ws, payload) {
+  try {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(typeof payload === 'string' ? payload : JSON.stringify(payload));
+    }
+  } catch (err) {
+    console.error('[WS Server] Failed to send message:', err);
+  }
+}
+
 wss.on('connection', (ws, req) => {
   const forwarded = req.headers['x-forwarded-for'] || req.headers['x-real-ip'];
   const ipRaw = forwarded ? String(forwarded).split(',')[0].trim() : (req.socket.remoteAddress || '127.0.0.1');
@@ -36,6 +46,10 @@ wss.on('connection', (ws, req) => {
   clients.push(session);
 
   console.log(`[+] Device connected from ${ip}`);
+
+  ws.on('error', (err) => {
+    console.warn(`[!] Socket error from ${ip}:`, err.message);
+  });
 
   ws.on('message', (messageData) => {
     try {
@@ -55,13 +69,11 @@ wss.on('connection', (ws, req) => {
         if (session.roomCode && roomHistories.has(session.roomCode)) {
           const historyItems = roomHistories.get(session.roomCode);
           if (historyItems && historyItems.length > 0) {
-            ws.send(
-              JSON.stringify({
-                type: 'ROOM_HISTORY_SYNC',
-                roomCode: session.roomCode,
-                items: historyItems,
-              })
-            );
+            safeSend(ws, {
+              type: 'ROOM_HISTORY_SYNC',
+              roomCode: session.roomCode,
+              items: historyItems,
+            });
           }
         }
         return;
@@ -92,12 +104,10 @@ wss.on('connection', (ws, req) => {
             client.ws !== ws &&
             client.ws.readyState === WebSocket.OPEN
           ) {
-            client.ws.send(
-              JSON.stringify({
-                type: 'RECEIVE_CLIPBOARD_ITEM',
-                item: data.item,
-              })
-            );
+            safeSend(client.ws, {
+              type: 'RECEIVE_CLIPBOARD_ITEM',
+              item: data.item,
+            });
           }
         });
       }
@@ -114,15 +124,13 @@ wss.on('connection', (ws, req) => {
             client.ws.readyState === WebSocket.OPEN &&
             (!data.targetDeviceId || client.deviceId === data.targetDeviceId)
           ) {
-            client.ws.send(
-              JSON.stringify({
-                type: 'WEBRTC_SIGNAL',
-                senderDeviceId: data.senderDeviceId || session.deviceId,
-                targetDeviceId: data.targetDeviceId,
-                signal: data.signal,
-                roomCode: targetRoom,
-              })
-            );
+            safeSend(client.ws, {
+              type: 'WEBRTC_SIGNAL',
+              senderDeviceId: data.senderDeviceId || session.deviceId,
+              targetDeviceId: data.targetDeviceId,
+              signal: data.signal,
+              roomCode: targetRoom,
+            });
           }
         });
         return;
@@ -140,18 +148,16 @@ wss.on('connection', (ws, req) => {
             client.ws.readyState === WebSocket.OPEN &&
             (!data.targetDeviceId || client.deviceId === data.targetDeviceId)
           ) {
-            client.ws.send(
-              JSON.stringify({
-                type: 'REMOTE_CONTROL_INPUT',
-                action: data.action,
-                dx: data.dx || 0,
-                dy: data.dy || 0,
-                text: data.text || '',
-                key: data.key || '',
-                senderDeviceId: data.senderDeviceId || session.deviceId,
-                targetDeviceId: data.targetDeviceId,
-              })
-            );
+            safeSend(client.ws, {
+              action: data.action,
+              dx: data.dx || 0,
+              dy: data.dy || 0,
+              text: data.text || '',
+              key: data.key || '',
+              senderDeviceId: data.senderDeviceId || session.deviceId,
+              targetDeviceId: data.targetDeviceId,
+              type: 'REMOTE_CONTROL_INPUT',
+            });
           }
         });
         return;
@@ -171,12 +177,10 @@ wss.on('connection', (ws, req) => {
             client.ws !== ws &&
             client.ws.readyState === WebSocket.OPEN
           ) {
-            client.ws.send(
-              JSON.stringify({
-                type: 'DELETE_CLIPBOARD_ITEM',
-                itemId: data.itemId,
-              })
-            );
+            safeSend(client.ws, {
+              type: 'DELETE_CLIPBOARD_ITEM',
+              itemId: data.itemId,
+            });
           }
         });
       }
@@ -194,11 +198,9 @@ wss.on('connection', (ws, req) => {
             client.ws !== ws &&
             client.ws.readyState === WebSocket.OPEN
           ) {
-            client.ws.send(
-              JSON.stringify({
-                type: 'CLEAR_ROOM_HISTORY',
-              })
-            );
+            safeSend(client.ws, {
+              type: 'CLEAR_ROOM_HISTORY',
+            });
           }
         });
       }
@@ -219,20 +221,18 @@ function broadcastDeviceList(roomCode) {
   if (!roomCode) {
     clients.forEach((client) => {
       if (!client.roomCode && client.ws.readyState === WebSocket.OPEN && client.deviceId) {
-        client.ws.send(
-          JSON.stringify({
-            type: 'DEVICE_LIST_UPDATE',
-            devices: [
-              {
-                id: client.deviceId,
-                name: client.deviceName,
-                platform: client.platform,
-                ipAddress: client.ipAddress || '127.0.0.1',
-                status: 'online',
-              },
-            ],
-          })
-        );
+        safeSend(client.ws, {
+          type: 'DEVICE_LIST_UPDATE',
+          devices: [
+            {
+              id: client.deviceId,
+              name: client.deviceName,
+              platform: client.platform,
+              ipAddress: client.ipAddress || '127.0.0.1',
+              status: 'online',
+            },
+          ],
+        });
       }
     });
     return;
@@ -256,14 +256,14 @@ function broadcastDeviceList(roomCode) {
     }
   }
 
-  const payload = JSON.stringify({
+  const payload = {
     type: 'DEVICE_LIST_UPDATE',
     devices: roomDevices,
-  });
+  };
 
   clients.forEach((client) => {
     if (client.roomCode === roomCode && client.ws.readyState === WebSocket.OPEN) {
-      client.ws.send(payload);
+      safeSend(client.ws, payload);
     }
   });
 }

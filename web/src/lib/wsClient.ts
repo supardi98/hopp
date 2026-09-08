@@ -113,7 +113,7 @@ class RealtimeWSClient {
     const targetUrl = url || getEffectiveRelayUrl();
     this.addLog('info', `Mencoba koneksi ke ${targetUrl}`, `Room Code: '${roomCode || 'Belum Set'}'`);
 
-    if (this.ws && this.serverUrl === targetUrl && this.isConnected) {
+    if (this.ws && this.serverUrl === targetUrl && (this.isConnected || this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) {
       this.addLog('info', `Sudah terhubung ke ${targetUrl}`);
       return;
     }
